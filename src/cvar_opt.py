@@ -75,7 +75,7 @@ def cvar_opt(
 
             for _ in range(NUM_INIT):
                 # generate initial point
-                # p of the article
+                # mean 0 and variance pi
                 num_param = qubits * (circ_depth + 1)
                 thetas0 = rng.random(num_param) * pi
 
