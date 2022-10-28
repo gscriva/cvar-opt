@@ -133,7 +133,7 @@ def cvar_opt(
                 result = dict(res)
                 result["sample_opt"] = sample_opt
                 result["eng_opt"] = eng_opt
-                result["global__min"] = eng_opt == min_eng
+                result["global_min"] = eng_opt == min_eng
                 # update json
                 data.append(result)
 
