@@ -131,3 +131,6 @@ dmypy.json
 # log file and results
 *.json
 *.txt
+results/
+*.png
+*.pdf
