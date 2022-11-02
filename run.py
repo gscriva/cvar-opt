@@ -18,7 +18,7 @@ parser.add_argument(
     "--alpha",
     type=int,
     default=25,
-    choices=range(1, 101),
+    choices={1, 5, 10, 25, 50, 75, 100},
     help="Alpha-th quantile to evaluate the loss (0,100] (default: 25)",
 )
 parser.add_argument(
