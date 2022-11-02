@@ -1,20 +1,15 @@
+import json
+from datetime import datetime
 from math import pi
+from multiprocessing import Pool, cpu_count
 from pathlib import Path
 from typing import List
-import json
-from json import JSONEncoder
-from multiprocessing import Pool, cpu_count
-from datetime import datetime
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
-from qiskit.circuit import ParameterVector
 from qiskit.providers.aer import AerSimulator
-from qiskit.visualization import plot_histogram
-from scipy.optimize import minimize
 
-from src.utils.ising import IsingModel
-from src.utils.func_vqe import create_circ, obj_func, qc_eval
+from src.ising import IsingModel
+from src.utils import NumpyArrayEncoder, param_circ
 from src.vqe import VQE
 
 # Use Aer's qasm_simulator
@@ -22,7 +17,7 @@ SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # initial points number
-NUM_INIT = 10
+NUM_INIT = 2
 # define a ferro ising model
 # with uniform external field
 # TODO J and h could also be np.ndarray
@@ -40,8 +35,7 @@ def cvar_opt(
     alpha: int = 25,
     save_dir: str = None,
     verbose: bool = False,
-    use_class: bool = False,
-):
+) -> None:
 
     # define generator for initial point
     rng = np.random.default_rng(seed=seed)
@@ -74,11 +68,6 @@ def cvar_opt(
     for shot in shots:
         for steps in maxiter:
             start = datetime.now()
-            # create file to save results
-            filename = f"results_shot{shot}_maxiter{steps}.json"
-            with open(filename, "w") as file:
-                json.dump([], file)
-
             if verbose:
                 print(f"\n\nShots {shot} Maxiter {steps}")
 
@@ -97,117 +86,18 @@ def cvar_opt(
                 optimizer=METHOD,
                 backend=SIMULATOR_METHOD,
                 shots=shot,
-                maxiter=maxiter,
+                maxiter=None,
                 cvar_alpha=alpha,
                 verbose=verbose,
             )
-            # read json
-            with open(filename, "r") as file:
-                data = json.load(file)
-            if use_class:
-                with Pool(processes=int(cpu_count() / 2)) as pool:
-                    results = pool.map(vqe.minimize, thetas0)
-                    # update json
-                data.extend(results)
-            else:
-                for i in range(NUM_INIT):
-                    # create and eval the circuit
-                    qc = create_circ(thetas0[i], qubits, circ_depth)
-                    if verbose:
-                        qc.draw()
-                        counts = qc_eval(qc, simulator, shot)
-                        plot_histogram(counts)
-
-                    # TODO it has to be an object
-                    # eval the loss for the initial point
-                    obj_func(
-                        thetas0[i],
-                        simulator,
-                        qubits,
-                        circ_depth,
-                        shot,
-                        ising,
-                        alpha=alpha,
-                        verbose=False,
-                    )
-
-                    # start the optimization
-                    res = minimize(
-                        obj_func,
-                        thetas0[i],
-                        args=(simulator, qubits, circ_depth, shot, ising, alpha),
-                        method=METHOD,
-                        options={"maxiter": steps, "disp": False},
-                    )
-
-                    qc = create_circ(res.x, qubits, circ_depth)
-                    counts = qc_eval(qc, simulator, shot)
-                    eng_opt = np.inf
-                    sample_opt = np.empty(qubits)
-                    for sample in counts.keys():
-                        # cast the sample in np.ndarray
-                        # and in ising notation {+1,-1}
-                        sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
-                        # compute the energy of the sample
-                        eng = ising.energy(sample_ising)
-                        if eng < eng_opt:
-                            eng_opt = eng
-                            sample_opt = np.copy(sample_ising)
-                    if verbose:
-                        print(
-                            f"Found minimum: {sample_opt} Energy: {eng_opt} Global minimum: {eng_opt == min_eng}"
-                        )
-                # save results
-                result = dict(res)
-                result["sample_opt"] = sample_opt
-                result["eng_opt"] = eng_opt
-                result["global_min"] = eng_opt == min_eng
-                # update json
-                data.append(result)
-
+            # optimize in parallel
+            with Pool(processes=int(cpu_count() / 2)) as pool:
+                results = pool.map(vqe.minimize, thetas0)
+            # write on json to save results
+            filename = f"results_shot{shot}_maxiter{steps}.json"
             with open(filename, "w") as file:
-                json.dump(data, file, cls=NumpyArrayEncoder, indent=4)
+                json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
 
             stop = datetime.now()
             print(f"\nTotal runtime: {(stop - start).seconds}s")
-
-
-# TODO replace with https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html#twolocal
-def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
-    # define circuit
-    qubits = QuantumRegister(num_qubits)
-    cbits = ClassicalRegister(num_qubits)
-    qc = QuantumCircuit(qubits, cbits)
-    # create a parametrized circuit
-    thetas = ParameterVector("theta", num_qubits * (circ_depth + 1))
-    # add first layer
-    for j in range(num_qubits):
-        qc.ry(thetas[j], j)
-    qc.barrier()
-
-    for i in range(circ_depth):
-        for j in range(num_qubits - 1):
-            qc.cx(j, j + 1)
-        qc.cx(0, num_qubits - 1)
-        qc.barrier()
-
-        for j in range(num_qubits):
-            qc.ry(thetas[(1 + i) * num_qubits + j], j)
-        qc.barrier()
-
-        if i == circ_depth - 1:
-            # Map the quantum measurement to the classical bits
-            qc.measure(qubits, cbits)
-            continue
-    return qc
-
-
-class NumpyArrayEncoder(JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, np.bool_):
-            return bool(obj)
-        if isinstance(obj, np.float64):
-            return float(obj)
-        return JSONEncoder.default(self, obj)
+    return

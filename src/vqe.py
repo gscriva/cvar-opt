@@ -6,7 +6,7 @@ from qiskit.providers.aer import AerSimulator
 from qiskit.result.counts import Counts
 from scipy import optimize
 
-from src.utils.ising import IsingModel
+from src.ising import IsingModel
 
 
 class VQE:
