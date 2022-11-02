@@ -3,7 +3,8 @@ from pathlib import Path
 from typing import List
 import json
 from json import JSONEncoder
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
+from datetime import datetime
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
@@ -39,7 +40,7 @@ def cvar_opt(
     alpha: int = 25,
     save_dir: str = None,
     verbose: bool = False,
-    use_class: bool = True,
+    use_class: bool = False,
 ):
 
     # define generator for initial point
@@ -72,6 +73,7 @@ def cvar_opt(
 
     for shot in shots:
         for steps in maxiter:
+            start = datetime.now()
             # create file to save results
             filename = f"results_shot{shot}_maxiter{steps}.json"
             with open(filename, "w") as file:
@@ -81,10 +83,10 @@ def cvar_opt(
                 print(f"\n\nShots {shot} Maxiter {steps}")
 
             thetas0: List[np.ndarray] = []
+            num_param = qubits * (circ_depth + 1)
             for _ in range(NUM_INIT):
                 # generate initial point
                 # mean 0 and variance pi
-                num_param = qubits * (circ_depth + 1)
                 thetas0.append(rng.random(num_param) * pi)
             # create and eval the circuit
             qc = param_circ(qubits, circ_depth)
@@ -97,22 +99,20 @@ def cvar_opt(
                 shots=shot,
                 maxiter=maxiter,
                 cvar_alpha=alpha,
+                verbose=verbose,
             )
             # read json
             with open(filename, "r") as file:
                 data = json.load(file)
             if use_class:
-                with Pool(process=) as pool:
-                    res = pool.map(vqe.minimize, thetas0)
-                    print(res)
+                with Pool(processes=int(cpu_count() / 2)) as pool:
+                    results = pool.map(vqe.minimize, thetas0)
+                    # update json
+                data.extend(results)
             else:
-                # generate initial point
-                # mean 0 and variance pi
-                num_param = qubits * (circ_depth + 1)
-                thetas0 = rng.random(num_param) * pi
-                for _ in range(NUM_INIT):
+                for i in range(NUM_INIT):
                     # create and eval the circuit
-                    qc = create_circ(thetas0[0], qubits, circ_depth)
+                    qc = create_circ(thetas0[i], qubits, circ_depth)
                     if verbose:
                         qc.draw()
                         counts = qc_eval(qc, simulator, shot)
@@ -121,7 +121,7 @@ def cvar_opt(
                     # TODO it has to be an object
                     # eval the loss for the initial point
                     obj_func(
-                        thetas0,
+                        thetas0[i],
                         simulator,
                         qubits,
                         circ_depth,
@@ -134,29 +134,29 @@ def cvar_opt(
                     # start the optimization
                     res = minimize(
                         obj_func,
-                        thetas0,
+                        thetas0[i],
                         args=(simulator, qubits, circ_depth, shot, ising, alpha),
                         method=METHOD,
                         options={"maxiter": steps, "disp": False},
                     )
 
-                qc = create_circ(res.x, qubits, circ_depth)
-                counts = qc_eval(qc, simulator, shot)
-                eng_opt = np.inf
-                sample_opt = np.empty(qubits)
-                for sample in counts.keys():
-                    # cast the sample in np.ndarray
-                    # and in ising notation {+1,-1}
-                    sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
-                    # compute the energy of the sample
-                    eng = ising.energy(sample_ising)
-                    if eng < eng_opt:
-                        eng_opt = eng
-                        sample_opt = np.copy(sample_ising)
-                if verbose:
-                    print(
-                        f"Found minimum: {sample_opt} Energy: {eng_opt} Global minimum: {eng_opt == min_eng}"
-                    )
+                    qc = create_circ(res.x, qubits, circ_depth)
+                    counts = qc_eval(qc, simulator, shot)
+                    eng_opt = np.inf
+                    sample_opt = np.empty(qubits)
+                    for sample in counts.keys():
+                        # cast the sample in np.ndarray
+                        # and in ising notation {+1,-1}
+                        sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
+                        # compute the energy of the sample
+                        eng = ising.energy(sample_ising)
+                        if eng < eng_opt:
+                            eng_opt = eng
+                            sample_opt = np.copy(sample_ising)
+                    if verbose:
+                        print(
+                            f"Found minimum: {sample_opt} Energy: {eng_opt} Global minimum: {eng_opt == min_eng}"
+                        )
                 # save results
                 result = dict(res)
                 result["sample_opt"] = sample_opt
@@ -165,8 +165,11 @@ def cvar_opt(
                 # update json
                 data.append(result)
 
-                with open(filename, "w") as file:
-                    json.dump(data, file, cls=NumpyArrayEncoder, indent=4)
+            with open(filename, "w") as file:
+                json.dump(data, file, cls=NumpyArrayEncoder, indent=4)
+
+            stop = datetime.now()
+            print(f"\nTotal runtime: {(stop - start).seconds}s")
 
 
 # TODO replace with https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html#twolocal
