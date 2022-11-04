@@ -1,8 +1,34 @@
 from json import JSONEncoder
+from typing import Optional, Union
 
 import numpy as np
 from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
 from qiskit.circuit import ParameterVector
+
+from src.ising import IsingModel
+
+
+# TODO J and h could also be np.ndarray
+def create_ising1d(
+    spins: int,
+    dim: int,
+    J: float,
+    h: Optional[float] = None,
+) -> tuple[IsingModel, float]:
+    # hamiltonian is defined with +
+    # following http://spinglass.uni-bonn.de/ notation
+    adja_dict = {}
+    field = np.zeros(spins)
+    ext_field = h
+    for i in range(spins):
+        field[i] = float(ext_field)
+        if i == spins - 1:
+            continue
+        adja_dict[(i, i + 1)] = float(-J)
+    # class devoted to set the couplings and get the energy
+    ising = IsingModel(spins, dim=dim, adja_dict=adja_dict, ext_field=field)
+    min_eng = ising.energy(-np.ones(spins))
+    return ising, min_eng
 
 
 # TODO replace with https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html#twolocal
