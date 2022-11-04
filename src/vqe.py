@@ -68,8 +68,8 @@ class VQE:
     def __str__(self) -> str:
         return f"""\nVQE instance 
         Ansatz:\n{self.ansatz}
-        Optimizer {self.optimizer}
-        Simulator {self.simulator}
+        Optimizer: {self.optimizer}
+        Simulator: {self.simulator}
         Shots: {self.shots}
         Maxiter: {self.maxiter}
         Alpha: {self.alpha}
