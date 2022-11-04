@@ -77,7 +77,7 @@ def cvar_opt(
                 optimizer=METHOD,
                 backend=SIMULATOR_METHOD,
                 shots=shot,
-                maxiter=maxiter,
+                maxiter=steps,
                 alpha=alpha,
                 global_min=global_min,
                 verbose=verbose,

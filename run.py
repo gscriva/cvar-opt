@@ -10,7 +10,13 @@ parser.add_argument("--circ-depth", type=int, help="Depth of the circuit")
 parser.add_argument(
     "--shots", nargs="+", type=int, help="Number circuit evaluations, may be a list"
 )
-parser.add_argument("--maxiter", nargs="+", type=int, help="Maximum optimizer steps")
+parser.add_argument(
+    "--maxiter",
+    nargs="+",
+    type=int,
+    default=[None],
+    help="Maximum optimizer steps",
+)
 parser.add_argument(
     "--seed", type=int, default=42, help="Seed to generate initial points (default: 42)"
 )
