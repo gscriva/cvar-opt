@@ -15,13 +15,14 @@ class VQE:
     Attributes:
         ansatz (QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
         expectation (IsingModel): Ising instance.
-        optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
-        backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
-        shots (int, optional): Number of sample from the circuit. Defaults to 1024.
-        maxiter (Optional[int], optional): Maximum number of iteration of the classical optimizer,
+        optimizer (str): Method for the classical optimization. Defaults to "COBYLA".
+        backend (str): Simulator for the circuit evaluation. Defaults to "automatic".
+        shots (int): Number of sample from the circuit. Defaults to 1024.
+        maxiter (Optional[int]): Maximum number of iteration of the classical optimizer,
             if None it runs until convergence up to a tollerance. Defaults to None.
-        alpha (int, optional): Alpha quantile used in CVaR-VQE. Defaults to 25.
-        global_min (float, optional): Global minimum of the expectation problem. Default to None.
+        alpha (int): Alpha quantile used in CVaR-VQE. Defaults to 25.
+        global_min (float): Global minimum of the expectation problem. Default to None.
+        history (list): List with the minimum reach at every iteration. 
 
     Methods:
         minimize(initial_point=np.ndarray)
@@ -64,6 +65,8 @@ class VQE:
         self._alpha = alpha
         self._global_min = global_min
         self._verbose = verbose
+        # TODO save minimum value, loss at each iteration
+        self.history = []
 
     def __str__(self) -> str:
         return f"""\nVQE instance 
@@ -132,6 +135,9 @@ class VQE:
             # compute the energy of the sample
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
+            # TODO set verbosity level 1 and 2
+            # if self._verbose == 2:
+            #     print(f"{sample} [{count}] energy: {energy}")
         return np.asarray(energies)
 
     def _minimize_func(self, parameters: np.ndarray) -> float:
@@ -160,12 +166,15 @@ class VQE:
             sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
             # compute the energy of the sample
             eng = self.expectation.energy(sample_ising)
+            # TODO set verbosity level 1 and 2
+            # if self._verbose:
+            #     print(f"{sample} energy: {eng}")
             if eng < eng_opt:
                 eng_opt = eng
                 sample_opt = np.copy(sample_ising)
         if self._verbose:
             print(
-                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:.3f} Global minimum: {eng_opt == self.global_min}"
+                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:.2f} Global minimum: {eng_opt == self.global_min}"
             )
         # save results
         result = dict(opt_res)
