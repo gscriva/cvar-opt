@@ -66,8 +66,8 @@ def cvar_opt(
             # define NUM_INIT different starting points
             for _ in range(NUM_INIT):
                 # generate initial point
-                # mean 0 and variance pi
-                thetas0.append(rng.random(num_param) * pi)
+                # uniform in [-2pi,2pi]
+                thetas0.append(rng.uniform(-2*pi, 2*pi, num_param))
             # create and eval the circuit
             qc = param_circ(qubits, circ_depth)
             # define optimization class
