@@ -33,13 +33,8 @@ parser.add_argument(
     default=None,
     help="Path to the save directory, None means local dir (default: None)",
 )
-parser.add_argument(
-    "-v",
-    "--verbose",
-    dest="verbose",
-    action="store_true",
-    help="Flag for verbose prints",
-)
+parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity level for prints (default=0)")
+
 
 
 def main(args: argparse.ArgumentParser):

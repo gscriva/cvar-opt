@@ -16,7 +16,7 @@ SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # initial points number
-NUM_INIT = 10
+NUM_INIT = 1000
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 16)
 # define a ferro ising model
@@ -35,7 +35,7 @@ def cvar_opt(
     seed: int = 42,
     alpha: int = 25,
     save_dir: str = None,
-    verbose: bool = False,
+    verbose: int = 0,
 ) -> None:
 
     # define generator for initial point
@@ -45,7 +45,7 @@ def cvar_opt(
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = create_ising1d(qubits, DIM, J, h)
-    if verbose:
+    if verbose > 0:
         print(ising)
         print(f"J:{ising.adja_dict}, h:{ising.ext_field}\n")
 
@@ -54,11 +54,13 @@ def cvar_opt(
         if not Path(save_dir).is_dir():
             print(f"'{save_dir}' not found")
             raise FileNotFoundError
+    else:
+        save_dir = Path().absolute()
 
     for shot in shots:
         for steps in maxiter:
             start = datetime.now()
-            if verbose:
+            if verbose > 0:
                 print(f"\nShots {shot} Maxiter {steps}")
 
             thetas0: List[np.ndarray] = []
@@ -67,7 +69,7 @@ def cvar_opt(
             for _ in range(NUM_INIT):
                 # generate initial point
                 # uniform in [-2pi,2pi]
-                thetas0.append(rng.uniform(-2*pi, 2*pi, num_param))
+                thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
             # create and eval the circuit
             qc = param_circ(qubits, circ_depth)
             # define optimization class
@@ -89,10 +91,12 @@ def cvar_opt(
             with Pool(processes=MAX_CPUS) as pool:
                 results = pool.map(vqe.minimize, thetas0)
             # write on json to save results
-            filename = f"results_shot{shot}_maxiter{steps}.json"
+            filename = f"{save_dir}/results_shots{shot}_maxiter{steps}.json"
             with open(filename, "w") as file:
                 json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
             # report total execution time
             stop = datetime.now()
-            print(f"\nTotal runtime: {(stop - start).seconds}s\n")
+            if verbose > 0:
+                print(f"\nSave results in {filename}")
+                print(f"Total runtime: {(stop - start).seconds}s\n")
     return
