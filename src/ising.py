@@ -46,7 +46,7 @@ class IsingModel:
         self._ext_field = ext_field if ext_field is not None else np.zeros(self.spins)
         assert (
             self.ext_field.shape[0] == self.spins
-        ), f"ext_field's shape: {ext_field.shape[0]} does not match number of spins: {self.spins}"
+        ), f"ext_field shape {ext_field.shape[0]} does not match spins number {self.spins}"
         # save memory and define it
         # only when you need it
         self._neighbours_repr = None
