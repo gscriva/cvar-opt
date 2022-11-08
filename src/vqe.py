@@ -117,7 +117,8 @@ class VQE:
         return self._history
 
     def _update_ansatz(self, parameters: np.ndarray) -> QuantumCircuit:
-        # assign current thetas to the circuit params
+        # assign current thetas to the parametric circuit
+        # in_place=False to not overwrite the parametric circuit
         circuit = self.ansatz.assign_parameters(parameters)
         return circuit
 
@@ -186,9 +187,10 @@ class VQE:
         ever_found: bool = isclose(
             np.asarray(self.history["min"]).min(), self.global_min
         )
+        where_found: int = int(np.argmin(self.history["min"]))
         if self._verbose > 0:
             print(
-                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:.2f} Global minimum: {success} ({ever_found})"
+                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:.2f} Global minimum: {success} ({ever_found} [{where_found}])"
             )
         if self._verbose > 1:
             print("\n")
@@ -204,6 +206,7 @@ class VQE:
 
     def minimize(self, initial_point: np.ndarray) -> dict[str, Any]:
         # reset history
+        # needed if the same VQE has been used for more than one job
         self._history: dict[list[float], list[float]] = {"min": [], "loss": []}
         # start initialization
         opt_res = optimize.minimize(
