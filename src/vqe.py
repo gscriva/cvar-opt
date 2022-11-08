@@ -122,18 +122,21 @@ class VQE:
         circuit = self.ansatz.assign_parameters(parameters)
         return circuit
 
-    def _eval_ansatz(self, circuit: QuantumCircuit) -> None:
-        # compile the circuit down to low-level instructions
-        compiled_qc = transpile(circuit, self.simulator)
+    def _eval_ansatz(self, circuit: QuantumCircuit) -> Counts:
         # Execute the circuit with fixed params
-        job = self.simulator.run(compiled_qc, shots=self.shots)
+        job = self.simulator.run(circuit, shots=self.shots)
         # Grab results from the job
-        result = job.result()
+        result = job.result().get_counts()
         # return counts
-        return result.get_counts(compiled_qc)
+        return result
 
-    def _compute_expectation(self, counts: Counts) -> np.ndarray:
+    def _compute_expectation(
+        self, counts: Counts, last: bool = False
+    ) -> tuple[np.ndarray, np.ndarray, float]:
+        # init outputs
         energies: list[float] = []
+        eng_opt: float = np.inf
+        sample_opt: np.ndarray = np.empty(self.expectation.spins)
         for sample, count in counts.items():
             # cast the sample in np.ndarray
             # and in ising notation {+1,-1}
@@ -141,7 +144,13 @@ class VQE:
             # compute the energy of the sample
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
-        return np.asarray(energies)
+            if last:
+                if self._verbose > 1:
+                    print(f"{sample} [{count}] energy: {energy}")
+                if energy < eng_opt:
+                    eng_opt = energy
+                    sample_opt = np.copy(sample_ising)
+        return np.asarray(energies), sample_opt, eng_opt
 
     def _update_history(self, min_energy: float, loss: float) -> None:
         self._history["loss"].append(loss)
@@ -152,7 +161,7 @@ class VQE:
         circuit = self._update_ansatz(parameters)
         counts = self._eval_ansatz(circuit)
         # compute energy according to the ising model
-        energies = self._compute_expectation(counts)
+        energies, _, _ = self._compute_expectation(counts)
         # get the alpha-th percentile
         cvar = np.percentile(energies, self.alpha)
         # sum all the energies below cvar
@@ -168,40 +177,32 @@ class VQE:
         # usinig the optimized results
         circuit = self._update_ansatz(opt_res.x)
         counts = self._eval_ansatz(circuit)
-        # get the energies
-        eng_opt: float = np.inf
-        sample_opt: np.ndarray = np.empty(self.expectation.spins)
-        for sample, count in counts.items():
-            # cast the sample in np.ndarray
-            # and in ising notation {+1,-1}
-            sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
-            # compute the energy of the sample
-            eng = self.expectation.energy(sample_ising)
-            if self._verbose > 1:
-                print(f"{sample} [{count}] energy: {eng}")
-            if eng < eng_opt:
-                eng_opt = eng
-                sample_opt = np.copy(sample_ising)
-        # add information to results dict
+        # get the min energy and its relative sample
+        _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
+        # collect information for the results dict
         success: bool = isclose(eng_opt, self.global_min)
         ever_found: bool = isclose(
             np.asarray(self.history["min"]).min(), self.global_min
         )
         where_found: int = int(np.argmin(self.history["min"]))
+        # print job summary
         if self._verbose > 0:
             print(
-                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:.2f} Global minimum: {success} ({ever_found} [{where_found}])"
+                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:6.2f}\tGlobal minimum: {success} ({ever_found} [{where_found}])"
             )
-        if self._verbose > 1:
-            print("\n")
+            if self._verbose > 1:
+                print("\n")
         # save results
         result = dict(opt_res)
-        result["sample_opt"] = sample_opt
-        result["eng_opt"] = eng_opt
-        result["success"] = success
-        result["ever_found"] = ever_found
-        result["history"] = self.history
-        result["shots"] = self.shots
+        # update dict with the operator |=
+        result |= {
+            "sample_opt": sample_opt,
+            "eng_opt": eng_opt,
+            "success": success,
+            "ever_found": ever_found,
+            "history": self.history,
+            "shots": self.shots,
+        }
         return result
 
     def minimize(self, initial_point: np.ndarray) -> dict[str, Any]:
