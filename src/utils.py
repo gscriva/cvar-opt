@@ -34,30 +34,29 @@ def create_ising1d(
 # TODO replace with https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html#twolocal
 def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
     # define circuit
-    qubits = QuantumRegister(num_qubits)
-    cbits = ClassicalRegister(num_qubits)
-    qc = QuantumCircuit(qubits, cbits)
-    # create a parametrized circuit
+    qc = QuantumCircuit(num_qubits)
+    # create a parameter for the circuit
     thetas = ParameterVector("theta", num_qubits * (circ_depth + 1))
     # add first layer
     for j in range(num_qubits):
         qc.ry(thetas[j], j)
     qc.barrier()
-
+    # add other circ_depth layers
     for i in range(circ_depth):
+        # add cnot gates
         for j in range(num_qubits - 1):
             qc.cx(j, j + 1)
         qc.cx(0, num_qubits - 1)
         qc.barrier()
-
+        # add Ry parametric gates
         for j in range(num_qubits):
             qc.ry(thetas[(1 + i) * num_qubits + j], j)
-        qc.barrier()
-
+        # do not put barrier in the last iteration
         if i == circ_depth - 1:
-            # Map the quantum measurement to the classical bits
-            qc.measure(qubits, cbits)
             continue
+        qc.barrier()
+    # measure all the qubits
+    qc.measure_all()
     return qc
 
 
