@@ -134,3 +134,6 @@ dmypy.json
 results/
 *.png
 *.pdf
+
+# bash
+*.sh
