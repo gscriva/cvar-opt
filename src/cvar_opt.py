@@ -37,7 +37,7 @@ def cvar_opt(
     save_dir: str = None,
     verbose: int = 0,
 ) -> None:
-
+    start = datetime.now()
     # define generator for initial point
     rng = np.random.default_rng(seed=seed)
 
@@ -59,7 +59,7 @@ def cvar_opt(
 
     for shot in shots:
         for steps in maxiter:
-            start = datetime.now()
+            start_it = datetime.now()
             if verbose > 0:
                 print(f"\nShots {shot} Maxiter {steps}")
 
@@ -94,9 +94,13 @@ def cvar_opt(
             filename = f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(steps).zfill(3)}.json"
             with open(filename, "w") as file:
                 json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
-            # report total execution time
-            stop = datetime.now()
+            # report iteration execution time
+            stop_it = datetime.now()
             if verbose > 0:
                 print(f"\nSave results in {filename}")
-                print(f"Total runtime: {(stop - start).seconds}s\n")
+                print(f"Iteration runtime: {stop_it - start_it}s\n")
+    # report total execution time
+    stop = datetime.now()
+    if verbose > 0:
+        print(f"Total runtime: {stop - start}s\n")
     return
