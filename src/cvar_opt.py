@@ -91,7 +91,7 @@ def cvar_opt(
             with Pool(processes=MAX_CPUS) as pool:
                 results = pool.map(vqe.minimize, thetas0)
             # write on json to save results
-            filename = f"{save_dir}/results_shots{shot}_maxiter{steps}.json"
+            filename = f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(steps).zfill(3)}.json"
             with open(filename, "w") as file:
                 json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
             # report total execution time
