@@ -181,8 +181,8 @@ class VQE:
         _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
         # collect information for the results dict
         success: bool = isclose(eng_opt, self.global_min)
-        ever_found: bool = isclose(
-            np.asarray(self.history["min"]).min(), self.global_min
+        ever_found: bool = (
+            isclose(np.asarray(self.history["min"]).min(), self.global_min) or success
         )
         where_found: int = int(np.argmin(self.history["min"]))
         # print job summary
