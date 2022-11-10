@@ -1,8 +1,10 @@
+import json
+import os
 from json import JSONEncoder
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
-from qiskit import ClassicalRegister, QuantumCircuit, QuantumRegister
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
 from src.ising import IsingModel
@@ -58,6 +60,38 @@ def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
     # measure all the qubits
     qc.measure_all()
     return qc
+
+
+def collect_results(qubits: np.ndarray) -> tuple[list, list]:
+    ts = []
+    psucc = []
+    for qubit in qubits:
+        dir_path = f"results/N{qubit}/"
+        print(f"directory: {dir_path}")
+        # init list
+        p_everfound = []
+        t_params = []
+        # for each number of qubits
+        # we have several number of shots and iterations
+        for filename in sorted(os.listdir(dir_path)):
+            filename = dir_path + filename
+            with open(filename, "r") as file:
+                # print(filename)
+                data = json.load(file)
+            ever_found = []
+            # for each shot and iteration param
+            # we randomized the initial point
+            for run in data:
+                ever_found.append(run["ever_found"])
+            # maxiter*shots = actual number of iteration
+            t = run["shots"] * run["nfev"]
+            # compute p('found minimum')
+            p_everfound.append(np.asarray(ever_found).mean())  # or median?
+            t_params.append(t)
+        # update list for each number of qubits
+        ts.append(t_params)
+        psucc.append(p_everfound)
+    return psucc, ts
 
 
 class NumpyArrayEncoder(JSONEncoder):
