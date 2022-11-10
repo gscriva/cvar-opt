@@ -2,7 +2,7 @@ from math import isclose
 from typing import Any, Optional
 
 import numpy as np
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.providers.aer import AerSimulator
 from qiskit.result.counts import Counts
 from scipy import optimize
@@ -29,6 +29,9 @@ class VQE:
         minimize(initial_point=np.ndarray)
             Run the optimization problem and return results.
     """
+
+    # turn off OpenMP intra-qiskit
+    __MAX_PARALLEL = 1
 
     def __init__(
         self,
@@ -60,7 +63,10 @@ class VQE:
         self._ansatz = ansatz
         self._expectation = expectation
         self._optimizer = optimizer
-        self._simulator: AerSimulator = AerSimulator(method=backend)
+        self._simulator: AerSimulator = AerSimulator(
+            method=backend,
+            max_parallel_threads=self.__MAX_PARALLEL,
+        )
         self._shots = shots
         self._maxiter = maxiter
         self._alpha = alpha
