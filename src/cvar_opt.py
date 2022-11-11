@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
-from qiskit.providers.aer import AerSimulator
 
 from src.utils import NumpyArrayEncoder, create_ising1d, param_circ
 from src.vqe import VQE
@@ -16,7 +15,7 @@ SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # initial points number
-NUM_INIT = 1000
+NUM_INIT = 10
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 16)
 # define a ferro ising model
