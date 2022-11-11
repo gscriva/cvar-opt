@@ -15,7 +15,7 @@ SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # initial points number
-NUM_INIT = 10
+NUM_INIT = 1000
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 16)
 # define a ferro ising model
