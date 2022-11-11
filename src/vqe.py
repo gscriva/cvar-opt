@@ -77,7 +77,7 @@ class VQE:
 
     def __str__(self) -> str:
         return f"""\nVQE instance 
-        Ansatz:\n{self.ansatz}
+        Ansatz:\n{self.ansatz if self.expectation.spins < 10 else type(self.ansatz)}
         Optimizer: {self.optimizer}
         Simulator: {self.simulator}
         Shots: {self.shots}
