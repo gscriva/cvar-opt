@@ -62,15 +62,19 @@ def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
     return qc
 
 
-def collect_results(qubits: np.ndarray) -> tuple[list, list]:
+def collect_results(qubits: np.ndarray) -> tuple[list, list, list, list]:
     ts = []
+    shots = []
+    nfevs = []
     psucc = []
     for qubit in qubits:
         dir_path = f"results/N{qubit}/"
         print(f"directory: {dir_path}")
         # init list
         p_everfound = []
-        t_params = []
+        t = []
+        s = []
+        it = []
         # for each number of qubits
         # we have several number of shots and iterations
         for filename in sorted(os.listdir(dir_path)):
@@ -81,17 +85,23 @@ def collect_results(qubits: np.ndarray) -> tuple[list, list]:
             ever_found = []
             # for each shot and iteration param
             # we randomized the initial point
+            # to estimate the right probability
             for run in data:
                 ever_found.append(run["ever_found"])
-            # maxiter*shots = actual number of iteration
-            t = run["shots"] * run["nfev"]
             # compute p('found minimum')
-            p_everfound.append(np.asarray(ever_found).mean())  # or median?
-            t_params.append(t)
+            p_everfound.append(
+                np.mean(np.asarray(ever_found, dtype=np.float128))
+            )  # float128 to avoid to many zeros
+            # maxiter*shots = actual number of iteration
+            t.append(run["shots"] * run["nfev"])
+            s.append(run["shots"])
+            it.append(run["nfev"])
         # update list for each number of qubits
-        ts.append(t_params)
+        ts.append(t)
         psucc.append(p_everfound)
-    return psucc, ts
+        shots.append(s)
+        nfevs.append(it)
+    return psucc, ts, shots, nfevs
 
 
 class NumpyArrayEncoder(JSONEncoder):
