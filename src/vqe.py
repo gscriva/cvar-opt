@@ -2,7 +2,7 @@ from math import isclose
 from typing import Any, Optional
 
 import numpy as np
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer import AerSimulator
 from qiskit.result.counts import Counts
 from scipy import optimize
@@ -77,7 +77,10 @@ class VQE:
 
     def __str__(self) -> str:
         return f"""\nVQE instance 
-        Ansatz:\n{self.ansatz if self.expectation.spins < 10 else type(self.ansatz)}
+        Ansatz:
+            qubits: {self.ansatz.num_qubits}
+            layers: {self.ansatz.num_parameters / self.ansatz.num_qubits - 1}
+            parameters: {self.ansatz.num_parameters}
         Optimizer: {self.optimizer}
         Simulator: {self.simulator}
         Shots: {self.shots}
@@ -130,7 +133,7 @@ class VQE:
 
     def _eval_ansatz(self, circuit: QuantumCircuit) -> Counts:
         # Execute the circuit with fixed params
-        job = self.simulator.run(circuit, shots=self.shots)
+        job = self.simulator.run(transpile(circuit, self.simulator), shots=self.shots)
         # Grab results from the job
         result = job.result().get_counts()
         # return counts

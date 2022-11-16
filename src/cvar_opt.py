@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import List
 
 import numpy as np
+from qiskit.circuit.library import RealAmplitudes
 
 from src.utils import NumpyArrayEncoder, create_ising1d, param_circ
 from src.vqe import VQE
@@ -15,7 +16,7 @@ SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # initial points number
-NUM_INIT = 10000
+NUM_INIT = 1000
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 16)
 # define a ferro ising model
@@ -69,8 +70,18 @@ def cvar_opt(
                 # generate initial point
                 # uniform in [-2pi,2pi]
                 thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
-            # create and eval the circuit
-            qc = param_circ(qubits, circ_depth)
+
+            # create the circuit
+            # standard VQE ansatz
+            qc = RealAmplitudes(
+                qubits,
+                reps=circ_depth,
+                insert_barriers=True,
+                entanglement="circular",
+            )
+            # measure all qubits at the end of the circuit
+            qc.measure_all()
+
             # define optimization class
             vqe = VQE(
                 qc,
@@ -85,19 +96,23 @@ def cvar_opt(
             )
             if verbose:
                 print(vqe)
+
             # optimize NUM_INIT instances in parallel
             # up to MAX_CPUS available on the system
             with Pool(processes=MAX_CPUS) as pool:
                 results = pool.map(vqe.minimize, thetas0)
+
             # write on json to save results
             filename = f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(steps).zfill(3)}.json"
             with open(filename, "w") as file:
                 json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
+
             # report iteration execution time
             stop_it = datetime.now()
             if verbose > 0:
                 print(f"\nSave results in {filename}")
                 print(f"Iteration runtime: {stop_it - start_it}s\n")
+
     # report total execution time
     stop = datetime.now()
     if verbose > 0:
