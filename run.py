@@ -6,16 +6,22 @@ from src.cvar_opt import cvar_opt
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--qubits", type=int, help="Number of qubits/spins")
-parser.add_argument("--circ-depth", type=int, help="Depth of the circuit")
 parser.add_argument(
-    "--shots", nargs="+", type=int, help="Number circuit evaluations, may be a list"
+    "--circ-depth", type=int, default=1, help="Depth of the circuit (default: 1)"
+)
+parser.add_argument(
+    "--shots",
+    nargs="+",
+    type=int,
+    default=[1024],
+    help="Number circuit evaluations, may be a list (default: 1024)",
 )
 parser.add_argument(
     "--maxiter",
     nargs="+",
     type=int,
     default=[None],
-    help="Maximum optimizer steps",
+    help="Maximum optimizer steps, may be a list. If None the classical optimizer runs until convergence (default: None)",
 )
 parser.add_argument(
     "--seed", type=int, default=42, help="Seed to generate initial points (default: 42)"
@@ -33,8 +39,13 @@ parser.add_argument(
     default=None,
     help="Path to the save directory, None means local dir (default: None)",
 )
-parser.add_argument('-v', '--verbose', action='count', default=0, help="Verbosity level for prints (default=0)")
-
+parser.add_argument(
+    "-v",
+    "--verbose",
+    action="count",
+    default=0,
+    help="Verbosity level for prints (default=0)",
+)
 
 
 def main(args: argparse.ArgumentParser):

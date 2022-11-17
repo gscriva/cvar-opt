@@ -1,0 +1,6 @@
+#----------qiskit--------#
+qiskit==0.39.0
+qiskit-ibm-runtime==0.8.0
+
+#-----fast computing-----#
+numba
