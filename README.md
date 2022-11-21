@@ -1,11 +1,16 @@
+<div align="center">
 
-# TTS study for VQE enhance with CVaR
+# TTS study for VQE enhanced by CVaR
 
 [comment]: <![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)>
 
 [comment]: <[![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)>
 
+</div>
+
 Evaluate the Time To Solution (TTS) [1] for Variational Quantum Eigensolver (VQE) using CVaR [2].
+
+<br>
 
 ## How to run
 
@@ -34,8 +39,12 @@ Run an optimization job with VQE and CVaR for an Ising ferromagnetic 1D problem
 python run.py --qubits 6 -v
 ```
 
-## Refs.
+<br>
+
+
+## References
 
 1. Albash, T. & Lidar, D. A. Demonstration of a Scaling Advantage for a Quantum Annealer over Simulated Annealing. [Phys. Rev. X 8, 031016](https://doi.org/10.1103/PhysRevX.8.031016) (2018).
 2. Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I. & Woerner, S. Improving Variational Quantum Optimization using CVaR. [Quantum 4, 256](https://doi.org/10.22331/q-2020-04-20-256) (2020).
 
+<br>
