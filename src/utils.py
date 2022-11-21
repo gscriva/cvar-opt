@@ -62,13 +62,15 @@ def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
     return qc
 
 
-def collect_results(qubits: np.ndarray) -> tuple[list, list, list, list]:
+def collect_results(
+    qubits: np.ndarray, circ_depth: int
+) -> tuple[list, list, list, list]:
     ts = []
     shots = []
     nfevs = []
     psucc = []
     for qubit in qubits:
-        dir_path = f"results/N{qubit}/"
+        dir_path = f"results/N{qubit}/p{circ_depth}"
         print(f"directory: {dir_path}")
         # init list
         p_everfound = []

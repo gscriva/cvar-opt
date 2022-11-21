@@ -18,7 +18,7 @@ METHOD = "COBYLA"
 # initial points number
 NUM_INIT = 1000
 # limit cpu usage
-MAX_CPUS = min(int(cpu_count() / 2), 16)
+MAX_CPUS = min(int(cpu_count() / 2), 12)
 # define a ferro ising model
 # with uniform external field
 # TODO J and h could also be np.ndarray
