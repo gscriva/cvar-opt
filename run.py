@@ -24,6 +24,13 @@ parser.add_argument(
     help="Maximum optimizer steps, may be a list. If None the classical optimizer runs until convergence (default: None)",
 )
 parser.add_argument(
+    "--type-ising",
+    type=str,
+    default="ferro",
+    choices={"ferro", "binary"},
+    help="Change between ferromagnetic and random binary model (default: 'ferro')",
+)
+parser.add_argument(
     "--seed", type=int, default=42, help="Seed to generate initial points (default: 42)"
 )
 parser.add_argument(
@@ -54,6 +61,7 @@ def main(args: argparse.ArgumentParser):
         args.circ_depth,
         args.shots,
         args.maxiter,
+        args.type_ising,
         args.seed,
         args.alpha,
         args.save_dir,

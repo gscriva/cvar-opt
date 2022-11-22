@@ -7,7 +7,7 @@ from qiskit.providers.aer import AerSimulator
 from qiskit.result.counts import Counts
 from scipy import optimize
 
-from src.ising import IsingModel
+from src.ising import Ising
 
 
 class VQE:
@@ -15,7 +15,7 @@ class VQE:
 
     Attributes:
         ansatz (QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
-        expectation (IsingModel): Ising instance.
+        expectation (Ising): Ising instance.
         optimizer (str): Method for the classical optimization. Defaults to "COBYLA".
         backend (str): Simulator for the circuit evaluation. Defaults to "automatic".
         shots (int): Number of sample from the circuit. Defaults to 1024.
@@ -36,7 +36,7 @@ class VQE:
     def __init__(
         self,
         ansatz: QuantumCircuit,
-        expectation: IsingModel,
+        expectation: Ising,
         optimizer: str = "COBYLA",
         backend: str = "automatic",
         shots: int = 1024,
@@ -49,7 +49,7 @@ class VQE:
 
         Args:
             ansatz (QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
-            expectation (IsingModel): Ising instance.
+            expectation (Ising): Ising instance.
             optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
             backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
             shots (int, optional): Number of sample from the circuit. Defaults to 1024.
@@ -86,7 +86,7 @@ class VQE:
         Shots: {self.shots}
         Maxiter: {self.maxiter}
         Alpha: {self.alpha}
-        Global minimum: {self.global_min}
+        Global minimum: {self.global_min:.2f}
         """
 
     @property
@@ -94,7 +94,7 @@ class VQE:
         return self._ansatz
 
     @property
-    def expectation(self) -> IsingModel:
+    def expectation(self) -> Ising:
         return self._expectation
 
     @property

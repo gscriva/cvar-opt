@@ -3,15 +3,14 @@ from datetime import datetime
 from math import pi
 from multiprocessing import Pool, cpu_count
 from pathlib import Path
-from typing import List
 
 import numpy as np
 from qiskit.circuit.library import RealAmplitudes
 
-from src.utils import NumpyArrayEncoder, create_ising1d, param_circ
+from src.utils import NumpyArrayEncoder, create_ising1d, get_ising
 from src.vqe import VQE
 
-# Use Aer's qasm_simulator
+# Use Aer's simulator
 SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
@@ -19,19 +18,17 @@ METHOD = "COBYLA"
 NUM_INIT = 1000
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 12)
-# define a ferro ising model
-# with uniform external field
-# TODO J and h could also be np.ndarray
-J = 1.0
-h = 0.05 * J
+# dimension of the ising model
+# and external field
 DIM = 1
 
 
 def cvar_opt(
     qubits: int,
     circ_depth: int,
-    shots: List[int],
-    maxiter: List[int],
+    shots: list[int],
+    maxiter: list[int],
+    type_ising: str = "ferro",
     seed: int = 42,
     alpha: int = 25,
     save_dir: str = None,
@@ -41,13 +38,12 @@ def cvar_opt(
     # define generator for initial point
     rng = np.random.default_rng(seed=seed)
 
-    # TODO make a function with params (spins, J, h)
+    J, h = get_ising(qubits, ising_type=type_ising, rng=rng)
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = create_ising1d(qubits, DIM, J, h)
-    if verbose > 0:
-        print(ising)
-        print(f"J:{ising.adja_dict}, h:{ising.ext_field}\n")
+    print(ising)
+    print(f"J: {ising.adja_dict}\nh: {ising.ext_field}\n")
 
     # check if directory exists
     if save_dir is not None:
@@ -60,14 +56,13 @@ def cvar_opt(
     for shot in shots:
         for steps in maxiter:
             start_it = datetime.now()
-            if verbose > 0:
-                print(f"\nShots {shot} Maxiter {steps}")
+            print(f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {NUM_INIT}")
 
-            thetas0: List[np.ndarray] = []
+            thetas0: list[np.ndarray] = []
             num_param = qubits * (circ_depth + 1)
             # define NUM_INIT different starting points
             for _ in range(NUM_INIT):
-                # generate initial point
+                # generate initial points
                 # uniform in [-2pi,2pi]
                 thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
 
@@ -94,8 +89,7 @@ def cvar_opt(
                 global_min=global_min,
                 verbose=verbose,
             )
-            if verbose:
-                print(vqe)
+            print(vqe)
 
             # optimize NUM_INIT instances in parallel
             # up to MAX_CPUS available on the system
@@ -109,12 +103,12 @@ def cvar_opt(
 
             # report iteration execution time
             stop_it = datetime.now()
-            if verbose > 0:
-                print(f"\nSave results in {filename}")
-                print(f"Iteration runtime: {stop_it - start_it}s\n")
+            # normalize per CPUs and iterations
+            delta_it = (stop_it - start_it) / (NUM_INIT / MAX_CPUS)
+            print(f"\nSave results in {filename}")
+            print(f"Iteration runtime: {delta_it.total_seconds():.2f}s\n")
 
     # report total execution time
     stop = datetime.now()
-    if verbose > 0:
-        print(f"Total runtime: {stop - start}s\n")
+    print(f"Total runtime: {stop - start}s\n")
     return

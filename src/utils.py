@@ -7,28 +7,47 @@ import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
 
-from src.ising import IsingModel
+from src.ising import Ising
+
+EXT_FIELD = 0.05
 
 
-# TODO J and h could also be np.ndarray
+def get_ising(spins: int, ising_type: str, rng: np.random.Generator) -> np.ndarray:
+    if ising_type == "ferro":
+        J = -np.ones(spins)
+        h = np.zeros(spins) + EXT_FIELD
+    elif ising_type == "binary":
+        J = (
+            rng.integers(
+                0,
+                2,
+                size=spins,
+            )
+            * 2
+            - 1
+        )
+        h = np.zeros(spins)
+    return J.astype(np.float64), h
+
+
 def create_ising1d(
     spins: int,
     dim: int,
-    J: float,
-    h: Optional[float] = None,
-) -> tuple[IsingModel, float]:
+    J: np.ndarray,
+    h: np.ndarray,
+) -> tuple[Ising, float]:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     adja_dict = {}
-    field = np.zeros(spins)
-    ext_field = h
+    field = np.zeros(spins) + h
     for i in range(spins):
-        field[i] = float(ext_field)
         if i == spins - 1:
             continue
-        adja_dict[(i, i + 1)] = float(-J)
+        adja_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
-    ising = IsingModel(spins, dim=dim, adja_dict=adja_dict, ext_field=field)
+    ising = Ising(spins, dim=dim, adja_dict=adja_dict, ext_field=field)
+    # TODO if the model is not ferro this is wrong,
+    # compute the real minimun exact diagonalization
     min_eng = ising.energy(-np.ones(spins))
     return ising, min_eng
 
@@ -70,7 +89,7 @@ def collect_results(
     nfevs = []
     psucc = []
     for qubit in qubits:
-        dir_path = f"results/N{qubit}/p{circ_depth}"
+        dir_path = f"results/N{qubit}/p{circ_depth}/"
         print(f"directory: {dir_path}")
         # init list
         p_everfound = []

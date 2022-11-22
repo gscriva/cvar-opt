@@ -5,7 +5,7 @@ from numba import jit
 from scipy import sparse
 
 
-class IsingModel:
+class Ising:
     """Class for dealing with a Ising problem and compute samples' energy.
 
     Attributes:
@@ -167,6 +167,7 @@ class IsingModel:
         )
         return energy
 
+    # TODO use einsum
     def energy(self, sample: np.ndarray) -> float:
         energy = (
             self.adja_matrix.toarray() * sample[..., None] * sample[None, ...]
