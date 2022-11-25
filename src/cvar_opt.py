@@ -43,7 +43,7 @@ def cvar_opt(
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = create_ising1d(qubits, DIM, J, h)
     print(ising)
-    print(f"J: {ising.adja_dict}\nh: {ising.ext_field}\n")
+    print(f"J: {ising.adja_dict}\nh: {ising.h_field}\n")
 
     # check if directory exists
     if save_dir is not None:

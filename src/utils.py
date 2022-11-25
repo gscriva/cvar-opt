@@ -45,7 +45,7 @@ def create_ising1d(
             continue
         adja_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
-    ising = Ising(spins, dim=dim, adja_dict=adja_dict, ext_field=field)
+    ising = Ising(spins, dim=dim, adja_dict=adja_dict, h_field=field)
     # TODO if the model is not ferro this is wrong,
     # compute the real minimun exact diagonalization
     min_eng = ising.energy(-np.ones(spins))
