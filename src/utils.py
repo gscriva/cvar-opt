@@ -9,13 +9,15 @@ from qiskit.circuit import ParameterVector
 
 from src.ising import Ising
 
-EXT_FIELD = 0.05
 
-
-def get_ising(spins: int, ising_type: str, rng: np.random.Generator) -> np.ndarray:
+def get_ising_params(
+    spins: int, h_field: float, ising_type: str, rng: np.random.Generator
+) -> np.ndarray:
+    # hamiltonian is defined with +
+    # following http://spinglass.uni-bonn.de/ notation
     if ising_type == "ferro":
         J = -np.ones(spins)
-        h = np.zeros(spins) + EXT_FIELD
+        h = np.zeros(spins) - h_field
     elif ising_type == "binary":
         J = (
             rng.integers(
@@ -39,13 +41,12 @@ def create_ising1d(
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     adja_dict = {}
-    field = np.zeros(spins) + h
     for i in range(spins):
         if i == spins - 1:
             continue
         adja_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
-    ising = Ising(spins, dim=dim, adja_dict=adja_dict, h_field=field)
+    ising = Ising(spins, dim=dim, adja_dict=adja_dict, h_field=h)
     # TODO if the model is not ferro this is wrong,
     # compute the real minimun exact diagonalization
     min_eng = ising.energy(-np.ones(spins))

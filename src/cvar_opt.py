@@ -7,20 +7,19 @@ from pathlib import Path
 import numpy as np
 from qiskit.circuit.library import RealAmplitudes
 
-from src.utils import NumpyArrayEncoder, create_ising1d, get_ising
+from src.utils import NumpyArrayEncoder, create_ising1d, get_ising_params
 from src.vqe import VQE
 
 # Use Aer's simulator
 SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
-# initial points number
-NUM_INIT = 1000
 # limit cpu usage
 MAX_CPUS = min(int(cpu_count() / 2), 12)
 # dimension of the ising model
-# and external field
+# and external field (present only in ferro model)
 DIM = 1
+H_FIELD = -0.05
 
 
 def cvar_opt(
@@ -28,6 +27,7 @@ def cvar_opt(
     circ_depth: int,
     shots: list[int],
     maxiter: list[int],
+    initial_points: list[int],
     type_ising: str = "ferro",
     seed: int = 42,
     alpha: int = 25,
@@ -38,9 +38,9 @@ def cvar_opt(
     # define generator for initial point
     rng = np.random.default_rng(seed=seed)
 
-    J, h = get_ising(qubits, ising_type=type_ising, rng=rng)
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
+    J, h = get_ising_params(qubits, h_field=H_FIELD, ising_type=type_ising, rng=rng)
     ising, global_min = create_ising1d(qubits, DIM, J, h)
     print(ising)
     print(f"J: {ising.adja_dict}\nh: {ising.h_field}\n")
@@ -56,12 +56,19 @@ def cvar_opt(
     for shot in shots:
         for steps in maxiter:
             start_it = datetime.now()
-            print(f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {NUM_INIT}")
+            print(
+                f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {initial_points}"
+            )
 
             thetas0: list[np.ndarray] = []
             num_param = qubits * (circ_depth + 1)
-            # define NUM_INIT different starting points
-            for _ in range(NUM_INIT):
+            # define initial_points different starting points
+            if len(initial_points) == 1:
+                initial_points.insert(0, 0)
+            for i in range(initial_points[1]):
+                if i < initial_points[0]:
+                    _ = rng.uniform(-2 * pi, 2 * pi, num_param)
+                    continue
                 # generate initial points
                 # uniform in [-2pi,2pi]
                 thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
@@ -91,7 +98,7 @@ def cvar_opt(
             )
             print(vqe)
 
-            # optimize NUM_INIT instances in parallel
+            # optimize initial_points instances in parallel
             # up to MAX_CPUS available on the system
             with Pool(processes=MAX_CPUS) as pool:
                 results = pool.map(vqe.minimize, thetas0)
@@ -104,7 +111,8 @@ def cvar_opt(
             # report iteration execution time
             stop_it = datetime.now()
             # normalize per CPUs and iterations
-            delta_it = (stop_it - start_it) / (NUM_INIT / MAX_CPUS)
+            per_cpu_runs = initial_points[1] - initial_points[0] / MAX_CPUS
+            delta_it = (stop_it - start_it) / per_cpu_runs
             print(f"\nSave results in {filename}")
             print(f"Iteration runtime: {delta_it.total_seconds():.2f}s\n")
 
