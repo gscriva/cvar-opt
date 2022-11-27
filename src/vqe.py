@@ -39,6 +39,7 @@ class VQE:
         expectation: Ising,
         optimizer: str = "COBYLA",
         backend: str = "automatic",
+        noise_model: Optional[bool] = None,
         shots: int = 1024,
         maxiter: Optional[int] = None,
         alpha: int = 25,
@@ -52,6 +53,7 @@ class VQE:
             expectation (Ising): Ising instance.
             optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
             backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
+            noise_model (bool, optional): If True a custom noise is added. Defaults to None.
             shots (int, optional): Number of sample from the circuit. Defaults to 1024.
             maxiter (Optional[int], optional): Maximum number of iteration of the classical optimizer,
                 if None it runs until convergence up to a tollerance. Defaults to None.
@@ -63,10 +65,17 @@ class VQE:
         self._ansatz = ansatz
         self._expectation = expectation
         self._optimizer = optimizer
+
+        if noise_model is not None:
+            # TODO add custom noise model
+            # with T1, T2 and CNOT error
+            pass
         self._simulator: AerSimulator = AerSimulator(
             method=backend,
             max_parallel_threads=self.__MAX_PARALLEL,
+            noise_model=noise_model,
         )
+        
         self._shots = shots
         self._maxiter = maxiter
         self._alpha = alpha
