@@ -1,7 +1,10 @@
 #----------qiskit--------#
-qiskit==0.39.0
+qiskit==0.39.2
 qiskit-ibm-runtime==0.8.0
 
 #-----fast computing-----#
 numba
+#----------plot----------#
 matplotlib
+#-----formating----------#
+black
