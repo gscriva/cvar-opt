@@ -14,7 +14,7 @@ class Ising:
         dim (int): Dimensions of the lattice.
         spin_side (int): Spins per lattice's side.
         spins (int): Total numbers of spins.
-        adja_matrix (sparse.coo.coo_matrix): Adjacency matrix in sparse representation.
+        adja_matrix (sparse.coo_array): Adjacency matrix in sparse representation.
         h_field (np.ndarray): External h field.
 
     Methods:
@@ -43,22 +43,20 @@ class Ising:
 
         self._adja_dict = {}
         self._check(adja_dict)
-        
+
         self._h_field = h_field if h_field is not None else np.zeros(self.spins)
         assert (
             self.h_field.shape[0] == self.spins
         ), f"External h field shape {h_field.shape[0]} does not match spins number {self.spins}"
-        
-        # save memory and define it
-        # only when you need it
-        self._neighbours_repr = None
+
         self._create_adja_matrix()
 
     def __str__(self) -> str:
-        #Connectivity: z={self.neighbours_repr[2].max()}
         return f"""\nIsing Model 
         Spins N={self.spins}
         Dimension D={self.dim}
+        Connectivity: z = {(self.adja_matrix.toarray() != 0).sum(-1).max()}
+
         """
 
     @classmethod
@@ -103,7 +101,7 @@ class Ising:
         return self.spin_side**self.dim
 
     @property
-    def adja_matrix(self) -> sparse.coo.coo_matrix:
+    def adja_matrix(self) -> sparse.coo_array:
         return self._adja_matrix
 
     def _check(self, adja_dict: dict[tuple[int, int], float]) -> None:
@@ -112,7 +110,8 @@ class Ising:
             try:
                 if self._adja_dict[(key[1], key[0])] == val:
                     continue
-            except: pass
+            except:
+                pass
             self._adja_dict.update({key: val})
 
     def _create_adja_matrix(self) -> None:
@@ -122,13 +121,13 @@ class Ising:
             i_vec.extend([i, j])
             j_vec.extend([j, i])
             couplings.extend([coupling, coupling])
-        self._adja_matrix = sparse.coo_matrix(
+        self._adja_matrix = sparse.coo_array(
             (couplings, (i_vec, j_vec)), shape=(self.spins, self.spins)
         )
 
     def energy(self, sample: np.ndarray) -> float:
-        eng = np.einsum('ij,i,j', self.adja_matrix.toarray(), sample, sample) / 2
-        eng += np.einsum('i,i', self.h_field, sample)
+        eng = np.einsum("ij,i,j", self.adja_matrix.toarray(), sample, sample) / 2
+        eng += np.einsum("i,i", self.h_field, sample)
         return eng
 
     def savetxt(self) -> None:

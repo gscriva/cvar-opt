@@ -150,7 +150,11 @@ class VQE:
             # cast the sample in np.ndarray
             # and in ising notation {+1,-1}
             sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
-            # compute the energy of the sample
+            # TODO is it faster?
+            # energy = self.expectation._saved_engs.get(sample)
+            # if energy is None:
+            #     energy = self.expectation.energy(sample_ising)
+            #     self.expectation._saved_engs[sample] = energy
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
             if last:
