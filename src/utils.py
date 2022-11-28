@@ -1,13 +1,16 @@
+import functools
 import json
 import os
 from json import JSONEncoder
-from typing import Optional
 
 import numpy as np
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterVector
+from scipy import sparse
 
 from src.ising import Ising
+
+TOL = 0.01
 
 
 def get_ising_params(
@@ -32,6 +35,34 @@ def get_ising_params(
     return J.astype(np.float64), h
 
 
+def compute_ising_min(ising: Ising) -> float:
+    def kron(gate_lst):
+        return functools.reduce(np.kron, gate_lst)
+
+    def pauli_z(i, n):
+        if i < 0 or i >= n or n < 1:
+            raise ValueError("Bad value of i and/or n.")
+        pauli_z_lst = [
+            np.array([[1, 0], [0, -1]]) if j == i else np.eye(2) for j in range(n)
+        ]
+        return kron(pauli_z_lst)
+
+    q_hamiltonian = sparse.coo_array(
+        sum(
+            [
+                ising.adj_matrix[i, j]
+                * pauli_z(i, ising.spins)
+                @ pauli_z(j, ising.spins)
+                for i in range(ising.spins)
+                for j in range(ising.spins)
+            ]
+        )
+        + sum([ising.h_field[i] * pauli_z(i, ising.spins) for i in range(ising.spins)])
+    )
+    eigvalue, _ = sparse.linalg.eigsh(q_hamiltonian, k=4)
+    return float(eigvalue.min())
+
+
 def create_ising1d(
     spins: int,
     dim: int,
@@ -40,16 +71,18 @@ def create_ising1d(
 ) -> tuple[Ising, float]:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    adja_dict = {}
+    adj_dict = {}
     for i in range(spins):
         if i == spins - 1:
             continue
-        adja_dict[(i, i + 1)] = J[i]
+        adj_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
-    ising = Ising(spins, dim=dim, adja_dict=adja_dict, h_field=h)
-    # TODO if the model is not ferro this is wrong,
-    # compute the real minimun exact diagonalization
-    min_eng = ising.energy(-np.ones(spins))
+    ising = Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
+    # exact diagonalization would be too expensive
+    if spins < 16:
+        min_eng = compute_ising_min(ising)
+    else:
+        min_eng = -np.inf
     return ising, min_eng
 
 
