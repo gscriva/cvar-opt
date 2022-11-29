@@ -37,8 +37,8 @@ class VQE:
     __MAX_PARALLEL = 1
     # noise parameters (some kind of magic...)
     __CUSTOM = True
-    __T1 = 80e3
-    __T2 = 50e3
+    __T1 = 50e3
+    __T2 = 70e3
     # Instruction times (in nanoseconds)
     __TIME_U1 = 0  # virtual gate
     __TIME_U2 = 50  # (single X90 pulse)
@@ -82,7 +82,7 @@ class VQE:
 
         if noise_model is not None:
             noise_model = self._get_noise()
-        self._simulator: AerSimulator = AerSimulator(
+        self._simulator = AerSimulator(
             method=backend,
             max_parallel_threads=self.__MAX_PARALLEL,
             noise_model=noise_model,
@@ -97,13 +97,14 @@ class VQE:
         self._history: dict[str, list[float]] = {"min": [], "loss": []}
 
     def __str__(self) -> str:
+        noise = True if self.simulator.options.noise_model is not None else False
         return f"""\nVQE instance 
         Ansatz:
             qubits: {self.ansatz.num_qubits}
             layers: {int(self.ansatz.num_parameters / self.ansatz.num_qubits - 1)}
             parameters: {self.ansatz.num_parameters}
         Optimizer: {self.optimizer}
-        Simulator: {self.simulator}
+        Simulator: {self.simulator} with noise: {noise}
         Shots: {self.shots}
         Maxiter: {self.maxiter}
         Alpha: {self.alpha}
@@ -163,6 +164,7 @@ class VQE:
                 self.__T1, self.__T2, self.__TIME_CX
             ).expand(thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_CX))
             # Add errors to noise model
+            noise_model = NoiseModel()
             noise_model.add_all_qubit_quantum_error(errors_reset, "reset")
             noise_model.add_all_qubit_quantum_error(errors_measure, "measure")
             noise_model.add_all_qubit_quantum_error(errors_u1, "u1")
@@ -171,7 +173,7 @@ class VQE:
             noise_model.add_all_qubit_quantum_error(errors_cx, "cx")
         else:
             device_backend = FakeMumbaiV2()
-            noise_model.from_backend(device_backend)
+            noise_model = NoiseModel.from_backend(device_backend)
         return noise_model
 
     def _update_ansatz(self, parameters: np.ndarray) -> QuantumCircuit:
