@@ -4,7 +4,10 @@ from typing import Any, Optional
 import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer import AerSimulator
+from qiskit.providers.aer.noise import thermal_relaxation_error
+from qiskit.providers.fake_provider import FakeMumbaiV2
 from qiskit.result.counts import Counts
+from qiskit_aer.noise import NoiseModel
 from scipy import optimize
 
 from src.ising import Ising
@@ -32,6 +35,17 @@ class VQE:
 
     # turn off OpenMP intra-qiskit
     __MAX_PARALLEL = 1
+    # noise parameters (some kind of magic...)
+    __CUSTOM = True
+    __T1 = 80e3
+    __T2 = 50e3
+    # Instruction times (in nanoseconds)
+    __TIME_U1 = 0  # virtual gate
+    __TIME_U2 = 50  # (single X90 pulse)
+    __TIME_U3 = 100  # (two X90 pulses)
+    __TIME_CX = 300
+    __TIME_RESET = 1000  # 1 microsecond
+    __TIME_MEASURE = 1000  # 1 microsecond
 
     def __init__(
         self,
@@ -67,15 +81,13 @@ class VQE:
         self._optimizer = optimizer
 
         if noise_model is not None:
-            # TODO add custom noise model
-            # with T1, T2 and CNOT error
-            pass
+            noise_model = self._get_noise()
         self._simulator: AerSimulator = AerSimulator(
             method=backend,
             max_parallel_threads=self.__MAX_PARALLEL,
             noise_model=noise_model,
         )
-        
+
         self._shots = shots
         self._maxiter = maxiter
         self._alpha = alpha
@@ -133,6 +145,34 @@ class VQE:
     @property
     def history(self) -> dict[str, list[float]]:
         return self._history
+
+    def _get_noise(self) -> NoiseModel:
+        noise_model = NoiseModel()
+        if self.__CUSTOM:
+            # QuantumError objects
+            errors_reset = thermal_relaxation_error(
+                self.__T1, self.__T2, self.__TIME_RESET
+            )
+            errors_measure = thermal_relaxation_error(
+                self.__T1, self.__T2, self.__TIME_MEASURE
+            )
+            errors_u1 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U1)
+            errors_u2 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U2)
+            errors_u3 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U3)
+            errors_cx = thermal_relaxation_error(
+                self.__T1, self.__T2, self.__TIME_CX
+            ).expand(thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_CX))
+            # Add errors to noise model
+            noise_model.add_all_qubit_quantum_error(errors_reset, "reset")
+            noise_model.add_all_qubit_quantum_error(errors_measure, "measure")
+            noise_model.add_all_qubit_quantum_error(errors_u1, "u1")
+            noise_model.add_all_qubit_quantum_error(errors_u2, "u2")
+            noise_model.add_all_qubit_quantum_error(errors_u3, "u3")
+            noise_model.add_all_qubit_quantum_error(errors_cx, "cx")
+        else:
+            device_backend = FakeMumbaiV2()
+            noise_model.from_backend(device_backend)
+        return noise_model
 
     def _update_ansatz(self, parameters: np.ndarray) -> QuantumCircuit:
         # assign current thetas to the parametric circuit

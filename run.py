@@ -31,6 +31,11 @@ parser.add_argument(
     help="Number of initial points, i.e., different runs to produce. Use two values input to resume old run. (default: 1000)",
 )
 parser.add_argument(
+    "--noise-model",
+    action="store_true",
+    help="Flag to run the circuit with a noisy simulator (default: False)",
+)
+parser.add_argument(
     "--type-ising",
     type=str,
     default="ferro",
@@ -69,6 +74,7 @@ def main(args: argparse.ArgumentParser):
         args.shots,
         args.maxiter,
         args.initial_points,
+        args.noise_model,
         args.type_ising,
         args.seed,
         args.alpha,
