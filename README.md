@@ -26,17 +26,19 @@ cd cvar-opt
 conda create -n myenv python=3.10
 conda activate myenv
 
-# install pytorch according to instructions
-# https://pytorch.org/get-started/
-
 # install requirements
 pip install -r requirements.txt
 ```
 </details>
 
-Run an optimization job with VQE and CVaR for an Ising ferromagnetic 1D problem 
+Run an optimization job with VQE and CVaR for an Ising ferromagnetic 1D problem with default parameters
 ```bash
 python run.py --qubits 6 -v
+```
+
+For the others parameters, take a look to the help
+```bash
+python run.py --help
 ```
 
 <br>
