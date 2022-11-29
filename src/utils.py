@@ -66,11 +66,14 @@ def compute_ising_min(ising: Ising) -> float:
 def create_ising1d(
     spins: int,
     dim: int,
-    J: np.ndarray,
-    h: np.ndarray,
+    type_ising: str,
+    h_field: float,
+    rng: np.random.Generator,
 ) -> tuple[Ising, float]:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
+    # and D-Wave https://docs.dwavesys.com/docs/latest/c_gs_2.html#underlying-quantum-physics
+    J, h = get_ising_params(spins, h_field, type_ising, rng)
     adj_dict = {}
     for i in range(spins):
         if i == spins - 1:
@@ -79,8 +82,10 @@ def create_ising1d(
     # class devoted to set the couplings and get the energy
     ising = Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
     # exact diagonalization would be too expensive
-    if spins < 16:
+    if spins < 14 and type_ising == "binary":
         min_eng = compute_ising_min(ising)
+    elif type_ising == "ferro":
+        min_eng = ising.energy(-np.ones(ising.spins))
     else:
         min_eng = -np.inf
     return ising, min_eng

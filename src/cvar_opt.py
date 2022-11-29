@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 from qiskit.circuit.library import RealAmplitudes
 
-from src.utils import NumpyArrayEncoder, create_ising1d, get_ising_params
+from src.utils import NumpyArrayEncoder, create_ising1d
 from src.vqe import VQE
 
 # Use Aer's simulator
@@ -41,8 +41,7 @@ def cvar_opt(
 
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    J, h = get_ising_params(qubits, h_field=H_FIELD, type_ising=type_ising, rng=rng)
-    ising, global_min = create_ising1d(qubits, DIM, J, h)
+    ising, global_min = create_ising1d(qubits, DIM, type_ising, H_FIELD, rng)
     print(ising)
     print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
 
