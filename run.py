@@ -27,7 +27,7 @@ parser.add_argument(
     "--initial-points",
     nargs="+",
     type=int,
-    default=1000,
+    default=[1000],
     help="Number of initial points, i.e., different runs to produce. Use two values input to resume old run. (default: 1000)",
 )
 parser.add_argument(
