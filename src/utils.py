@@ -14,14 +14,14 @@ TOL = 0.01
 
 
 def get_ising_params(
-    spins: int, h_field: float, ising_type: str, rng: np.random.Generator
+    spins: int, h_field: float, type_ising: str, rng: np.random.Generator
 ) -> np.ndarray:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    if ising_type == "ferro":
+    if type_ising == "ferro":
         J = -np.ones(spins)
         h = np.zeros(spins) - h_field
-    elif ising_type == "binary":
+    elif type_ising == "binary":
         J = (
             rng.integers(
                 0,

@@ -41,7 +41,7 @@ def cvar_opt(
 
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    J, h = get_ising_params(qubits, h_field=H_FIELD, ising_type=type_ising, rng=rng)
+    J, h = get_ising_params(qubits, h_field=H_FIELD, type_ising=type_ising, rng=rng)
     ising, global_min = create_ising1d(qubits, DIM, J, h)
     print(ising)
     print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
