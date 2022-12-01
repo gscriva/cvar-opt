@@ -112,12 +112,12 @@ def cvar_opt(
             # report iteration execution time
             stop_it = datetime.now()
             # normalize per CPUs and iterations
-            per_cpu_runs = initial_points[1] - initial_points[0] / MAX_CPUS
+            per_cpu_runs = (initial_points[1] - initial_points[0]) / MAX_CPUS
             delta_it = (stop_it - start_it) / per_cpu_runs
             print(f"\nSave results in {filename}")
-            print(f"Iteration runtime: {delta_it.total_seconds():.2f}s\n")
+            print(f"Per CPU time: {delta_it.total_seconds():.2f}s\n")
 
     # report total execution time
     stop = datetime.now()
-    print(f"Total runtime: {stop - start}s\n")
+    print(f"Wall time: {stop - start}s\n")
     return
