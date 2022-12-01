@@ -5,7 +5,7 @@ import numpy as np
 from qiskit import QuantumCircuit, transpile
 from qiskit.providers.aer import AerSimulator
 from qiskit.providers.aer.noise import thermal_relaxation_error
-from qiskit.providers.fake_provider import FakeMumbaiV2
+from qiskit.providers.fake_provider import FakeMumbai
 from qiskit.result.counts import Counts
 from qiskit_aer.noise import NoiseModel
 from scipy import optimize
@@ -36,6 +36,7 @@ class VQE:
     # turn off OpenMP intra-qiskit
     __MAX_PARALLEL = 1
     # noise parameters (some kind of magic...)
+    # if custom is false a fake provider is loaded
     __CUSTOM = True
     __T1 = 50e3
     __T2 = 70e3
@@ -157,6 +158,7 @@ class VQE:
             errors_measure = thermal_relaxation_error(
                 self.__T1, self.__T2, self.__TIME_MEASURE
             )
+            # define thermal errors
             errors_u1 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U1)
             errors_u2 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U2)
             errors_u3 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U3)
@@ -172,7 +174,7 @@ class VQE:
             noise_model.add_all_qubit_quantum_error(errors_u3, "u3")
             noise_model.add_all_qubit_quantum_error(errors_cx, "cx")
         else:
-            device_backend = FakeMumbaiV2()
+            device_backend = FakeMumbai()
             noise_model = NoiseModel.from_backend(device_backend)
         return noise_model
 
