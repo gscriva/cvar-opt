@@ -43,7 +43,10 @@ parser.add_argument(
     help="Change between ferromagnetic and random binary model (default: 'ferro')",
 )
 parser.add_argument(
-    "--seed", type=int, default=42, help="Seed to generate initial points (default: 42)"
+    "--seed",
+    type=int,
+    default=42,
+    help="Seed to generate different ising random models (default: 42)",
 )
 parser.add_argument(
     "--alpha",

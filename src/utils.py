@@ -14,7 +14,10 @@ TOL = 0.01
 
 
 def get_ising_params(
-    spins: int, h_field: float, type_ising: str, rng: np.random.Generator
+    spins: int,
+    h_field: float,
+    type_ising: str,
+    seed: int,
 ) -> np.ndarray:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
@@ -22,8 +25,9 @@ def get_ising_params(
         J = -np.ones(spins)
         h = np.zeros(spins) - h_field
     elif type_ising == "binary":
+        ising_rng = np.random.default_rng(seed=seed)
         J = (
-            rng.integers(
+            ising_rng.integers(
                 0,
                 2,
                 size=spins,
@@ -68,12 +72,12 @@ def create_ising1d(
     dim: int,
     type_ising: str,
     h_field: float,
-    rng: np.random.Generator,
+    seed: int,
 ) -> tuple[Ising, float]:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     # and D-Wave https://docs.dwavesys.com/docs/latest/c_gs_2.html#underlying-quantum-physics
-    J, h = get_ising_params(spins, h_field, type_ising, rng)
+    J, h = get_ising_params(spins, h_field, type_ising, seed)
     adj_dict = {}
     for i in range(spins):
         if i == spins - 1:

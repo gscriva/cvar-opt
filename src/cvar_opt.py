@@ -20,6 +20,8 @@ MAX_CPUS = min(int(cpu_count() / 2), 12)
 # and external field (present only in ferro model)
 DIM = 1
 H_FIELD = -0.05
+# seed random point
+SEED = 42
 
 
 def cvar_opt(
@@ -36,12 +38,25 @@ def cvar_opt(
     verbose: int = 0,
 ) -> None:
     start = datetime.now()
+
     # define generator for initial point
-    rng = np.random.default_rng(seed=seed)
+    rng = np.random.default_rng(seed=SEED)
+    thetas0: list[np.ndarray] = []
+    num_param = qubits * (circ_depth + 1)
+    # define initial_points different starting points
+    if len(initial_points) == 1:
+        initial_points.insert(0, 0)
+    for i in range(initial_points[1]):
+        if i < initial_points[0]:
+            _ = rng.uniform(-2 * pi, 2 * pi, num_param)
+            continue
+        # generate initial points
+        # uniform in [-2pi,2pi]
+        thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
 
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    ising, global_min = create_ising1d(qubits, DIM, type_ising, H_FIELD, rng)
+    ising, global_min = create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
     print(ising)
     print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
 
@@ -59,20 +74,6 @@ def cvar_opt(
             print(
                 f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {initial_points}"
             )
-
-            thetas0: list[np.ndarray] = []
-            num_param = qubits * (circ_depth + 1)
-            # define initial_points different starting points
-            if len(initial_points) == 1:
-                initial_points.insert(0, 0)
-            for i in range(initial_points[1]):
-                if i < initial_points[0]:
-                    _ = rng.uniform(-2 * pi, 2 * pi, num_param)
-                    continue
-                # generate initial points
-                # uniform in [-2pi,2pi]
-                thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
-
             # create the circuit
             # standard VQE ansatz
             qc = RealAmplitudes(
