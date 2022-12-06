@@ -4,8 +4,7 @@ import os
 from json import JSONEncoder
 
 import numpy as np
-from qiskit import QuantumCircuit
-from qiskit.circuit import ParameterVector
+import qiskit
 from scipy import sparse
 
 from src.ising import Ising
@@ -95,26 +94,53 @@ def create_ising1d(
     return ising, min_eng
 
 
-# TODO replace with https://qiskit.org/documentation/stubs/qiskit.circuit.library.TwoLocal.html#twolocal
-def param_circ(num_qubits: int, circ_depth: int) -> QuantumCircuit:
+def create_qaoa_ansatz(
+    num_qubits: int,
+    circ_depth: int,
+    increase_params: bool = False,
+) -> qiskit.QuantumCircuit:
+    """Create a quantum ansatz inspired by the problem Hamiltonian.
+    Setting increase_params=False the ansatz becomes the typical one of QAOA, with 2*circ_depth parameters.
+    Otherwise, increase_params=True increases the parameters to (2*num_qubits - 1)*circ_depth.
+    See also https://qiskit.org/textbook/ch-applications/qaoa.html.
+
+    Args:
+        num_qubits (int): Number of qubits.
+        circ_depth (int): Depth of the circuit, minimum 1.
+        increase_params (bool, optional): Allows betas and gammas to change in each layer. Defaults to False.
+
+    Returns:
+        qiskit.QuantumCircuit: QAOA-like ansatz.
+    """
     # define circuit
-    qc = QuantumCircuit(num_qubits)
-    # create a parameter for the circuit
-    thetas = ParameterVector("theta", num_qubits * (circ_depth + 1))
-    # add first layer
-    for j in range(num_qubits):
-        qc.ry(thetas[j], j)
-    qc.barrier()
-    # add other circ_depth layers
+    name = "QAOA+" if increase_params else "QAOA"
+    qc = qiskit.QuantumCircuit(num_qubits, name=name)
+    # set initial entalgled state
+    for i in range(num_qubits):
+        qc.h(i)
+    if increase_params:
+        # create the parameters for the circuit
+        thetas = qiskit.circuit.ParameterVector(
+            "$\\theta$", (2 * num_qubits - 1) * circ_depth
+        )
+    else:
+        # calssical QAOA ansatz
+        beta = qiskit.circuit.Parameter("$\\beta$")
+        gamma = qiskit.circuit.Parameter("$\\gamma$")
+    # add circ_depth layers
     for i in range(circ_depth):
-        # add cnot gates
-        for j in range(num_qubits - 1):
-            qc.cx(j, j + 1)
-        qc.cx(0, num_qubits - 1)
-        qc.barrier()
-        # add Ry parametric gates
+        # add Rx parametric gates
         for j in range(num_qubits):
-            qc.ry(thetas[(1 + i) * num_qubits + j], j)
+            if increase_params:
+                qc.rx(2 * thetas[(2 * num_qubits - 1) * i + j], j)
+            else:
+                qc.rx(2 * beta, j)
+        # add R_zz parametric gates
+        for j in range(num_qubits - 1):
+            if increase_params:
+                qc.rzz(2 * thetas[(2 * num_qubits - 1) * i + num_qubits + j], j, j + 1)
+            else:
+                qc.rzz(2 * gamma, j, j + 1)
         # do not put barrier in the last iteration
         if i == circ_depth - 1:
             continue
@@ -144,7 +170,7 @@ def collect_results(
         for filename in sorted(os.listdir(dir_path)):
             filename = dir_path + filename
             with open(filename, "r") as file:
-                # print(filename)
+                # data are a list with #initial_points elements
                 data = json.load(file)
             ever_found = []
             # for each shot and iteration param
