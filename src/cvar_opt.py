@@ -1,21 +1,20 @@
 import json
+import math
+import multiprocessing as mp
 from datetime import datetime
-from math import pi
-from multiprocessing import Pool, cpu_count
 from pathlib import Path
 
 import numpy as np
-from qiskit.circuit.library import RealAmplitudes
+import qiskit
 
-from src.utils import NumpyArrayEncoder, create_ising1d
-from src.vqe import VQE
+from . import utils, vqe
 
 # Use Aer's simulator
 SIMULATOR_METHOD = "automatic"
 # define specific optimizer
 METHOD = "COBYLA"
 # limit cpu usage
-MAX_CPUS = min(int(cpu_count() / 2), 12)
+MAX_CPUS = min(int(mp.cpu_count() / 2), 12)
 # dimension of the ising model
 # and external field (present only in ferro model)
 DIM = 1
@@ -47,16 +46,17 @@ def cvar_opt(
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
     for i in range(initial_points[1]):
+        # skip initial points not needed
         if i < initial_points[0]:
-            _ = rng.uniform(-2 * pi, 2 * pi, num_param)
+            _ = rng.uniform(-2 * math.pi, 2 * math.pi, num_param)
             continue
         # generate initial points
         # uniform in [-2pi,2pi]
-        thetas0.append(rng.uniform(-2 * pi, 2 * pi, num_param))
+        thetas0.append(rng.uniform(-2 * math.pi, 2 * math.pi, num_param))
 
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
-    ising, global_min = create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
+    ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
     print(ising)
     print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
 
@@ -76,7 +76,7 @@ def cvar_opt(
             )
             # create the circuit
             # standard VQE ansatz
-            qc = RealAmplitudes(
+            qc = qiskit.circuit.library.RealAmplitudes(
                 qubits,
                 reps=circ_depth,
                 insert_barriers=True,
@@ -86,7 +86,7 @@ def cvar_opt(
             qc.measure_all()
 
             # define optimization class
-            vqe = VQE(
+            var_problem = vqe.VQE(
                 qc,
                 ising,
                 optimizer=METHOD,
@@ -98,17 +98,17 @@ def cvar_opt(
                 global_min=global_min,
                 verbose=verbose,
             )
-            print(vqe)
+            print(var_problem)
 
             # optimize initial_points instances in parallel
             # up to MAX_CPUS available on the system
-            with Pool(processes=MAX_CPUS) as pool:
-                results = pool.map(vqe.minimize, thetas0)
+            with mp.Pool(processes=MAX_CPUS) as pool:
+                results = pool.map(var_problem.minimize, thetas0)
 
             # write on json to save results
             filename = f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(steps).zfill(3)}.json"
             with open(filename, "w") as file:
-                json.dump(results, file, cls=NumpyArrayEncoder, indent=4)
+                json.dump(results, file, cls=utils.NumpyArrayEncoder, indent=4)
 
             # report iteration execution time
             stop_it = datetime.now()

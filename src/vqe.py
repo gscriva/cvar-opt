@@ -1,24 +1,21 @@
-from math import isclose
+import math
 from typing import Any, Optional
 
 import numpy as np
-from qiskit import QuantumCircuit, transpile
-from qiskit.providers.aer import AerSimulator
-from qiskit.providers.aer.noise import thermal_relaxation_error
-from qiskit.providers.fake_provider import FakeMumbai
-from qiskit.result.counts import Counts
-from qiskit_aer.noise import NoiseModel
+import qiskit
+import qiskit_aer
+from qiskit_aer import noise
 from scipy import optimize
 
-from src.ising import Ising
+from . import ising
 
 
 class VQE:
     """Class to define and solve an optimization problem using VQE.
 
     Attributes:
-        ansatz (QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
-        expectation (Ising): Ising instance.
+        ansatz (qiskit.QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
+        expectation (ising.Ising): Ising instance.
         optimizer (str): Method for the classical optimization. Defaults to "COBYLA".
         backend (str): Simulator for the circuit evaluation. Defaults to "automatic".
         shots (int): Number of sample from the circuit. Defaults to 1024.
@@ -36,8 +33,6 @@ class VQE:
     # turn off OpenMP intra-qiskit
     __MAX_PARALLEL = 1
     # noise parameters (some kind of magic...)
-    # if custom is false a fake provider is loaded
-    __CUSTOM = True
     __T1 = 50e3
     __T2 = 70e3
     # Instruction times (in nanoseconds)
@@ -50,8 +45,8 @@ class VQE:
 
     def __init__(
         self,
-        ansatz: QuantumCircuit,
-        expectation: Ising,
+        ansatz: qiskit.QuantumCircuit,
+        expectation: ising.Ising,
         optimizer: str = "COBYLA",
         backend: str = "automatic",
         noise_model: Optional[bool] = None,
@@ -64,8 +59,8 @@ class VQE:
         """Initialization of a VQE instance.
 
         Args:
-            ansatz (QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
-            expectation (Ising): Ising instance.
+            ansatz (qiskit.QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
+            expectation (ising.Ising): Ising instance.
             optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
             backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
             noise_model (bool, optional): If True a custom noise is added. Defaults to None.
@@ -83,7 +78,7 @@ class VQE:
 
         if noise_model is not None:
             noise_model = self._get_noise()
-        self._simulator = AerSimulator(
+        self._simulator = qiskit_aer.AerSimulator(
             method=backend,
             max_parallel_threads=self.__MAX_PARALLEL,
             noise_model=noise_model,
@@ -113,11 +108,11 @@ class VQE:
         """
 
     @property
-    def ansatz(self) -> QuantumCircuit:
+    def ansatz(self) -> qiskit.QuantumCircuit:
         return self._ansatz
 
     @property
-    def expectation(self) -> Ising:
+    def expectation(self) -> ising.Ising:
         return self._expectation
 
     @property
@@ -125,7 +120,7 @@ class VQE:
         return self._optimizer
 
     @property
-    def simulator(self) -> AerSimulator:
+    def simulator(self) -> qiskit_aer.AerSimulator:
         return self._simulator
 
     @property
@@ -148,52 +143,52 @@ class VQE:
     def history(self) -> dict[str, list[float]]:
         return self._history
 
-    def _get_noise(self) -> NoiseModel:
-        noise_model = NoiseModel()
-        if self.__CUSTOM:
-            # QuantumError objects
-            errors_reset = thermal_relaxation_error(
-                self.__T1, self.__T2, self.__TIME_RESET
-            )
-            errors_measure = thermal_relaxation_error(
-                self.__T1, self.__T2, self.__TIME_MEASURE
-            )
-            # define thermal errors
-            errors_u1 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U1)
-            errors_u2 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U2)
-            errors_u3 = thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U3)
-            errors_cx = thermal_relaxation_error(
-                self.__T1, self.__T2, self.__TIME_CX
-            ).expand(thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_CX))
-            # Add errors to noise model
-            noise_model = NoiseModel()
-            noise_model.add_all_qubit_quantum_error(errors_reset, "reset")
-            noise_model.add_all_qubit_quantum_error(errors_measure, "measure")
-            noise_model.add_all_qubit_quantum_error(errors_u1, "u1")
-            noise_model.add_all_qubit_quantum_error(errors_u2, "u2")
-            noise_model.add_all_qubit_quantum_error(errors_u3, "u3")
-            noise_model.add_all_qubit_quantum_error(errors_cx, "cx")
-        else:
-            device_backend = FakeMumbai()
-            noise_model = NoiseModel.from_backend(device_backend)
+    def _get_noise(self) -> noise.NoiseModel:
+        noise_model = noise.NoiseModel()
+        # QuantumError objects
+        errors_reset = noise.thermal_relaxation_error(
+            self.__T1, self.__T2, self.__TIME_RESET
+        )
+        errors_measure = noise.thermal_relaxation_error(
+            self.__T1, self.__T2, self.__TIME_MEASURE
+        )
+        # define thermal errors
+        errors_u1 = noise.thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U1)
+        errors_u2 = noise.thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U2)
+        errors_u3 = noise.thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_U3)
+        errors_cx = noise.thermal_relaxation_error(
+            self.__T1, self.__T2, self.__TIME_CX
+        ).expand(noise.thermal_relaxation_error(self.__T1, self.__T2, self.__TIME_CX))
+        # Add errors to noise model
+        noise_model = noise.NoiseModel()
+        noise_model.add_all_qubit_quantum_error(errors_reset, "reset")
+        noise_model.add_all_qubit_quantum_error(errors_measure, "measure")
+        noise_model.add_all_qubit_quantum_error(errors_u1, "u1")
+        noise_model.add_all_qubit_quantum_error(errors_u2, "u2")
+        noise_model.add_all_qubit_quantum_error(errors_u3, "u3")
+        noise_model.add_all_qubit_quantum_error(errors_cx, "cx")
         return noise_model
 
-    def _update_ansatz(self, parameters: np.ndarray) -> QuantumCircuit:
+    def _update_ansatz(self, parameters: np.ndarray) -> qiskit.QuantumCircuit:
         # assign current thetas to the parametric circuit
         # in_place=False to not overwrite the parametric circuit
         circuit = self.ansatz.assign_parameters(parameters)
         return circuit
 
-    def _eval_ansatz(self, circuit: QuantumCircuit) -> Counts:
+    def _eval_ansatz(
+        self, circuit: qiskit.QuantumCircuit
+    ) -> qiskit.result.counts.Counts:
         # Execute the circuit with fixed params
-        job = self.simulator.run(transpile(circuit, self.simulator), shots=self.shots)
+        job = self.simulator.run(
+            qiskit.transpile(circuit, self.simulator), shots=self.shots
+        )
         # Grab results from the job
         result = job.result().get_counts()
         # return counts
         return result
 
     def _compute_expectation(
-        self, counts: Counts, last: bool = False
+        self, counts: qiskit.result.counts.Counts, last: bool = False
     ) -> tuple[np.ndarray, np.ndarray, float]:
         # init outputs
         energies: list[float] = []
@@ -246,9 +241,10 @@ class VQE:
         # get the min energy and its relative sample
         _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
         # collect information for the results dict
-        success: bool = isclose(eng_opt, self.global_min)
+        success: bool = math.isclose(eng_opt, self.global_min)
         ever_found: bool = (
-            isclose(np.asarray(self.history["min"]).min(), self.global_min) or success
+            math.isclose(np.asarray(self.history["min"]).min(), self.global_min)
+            or success
         )
         where_found: int = int(np.argmin(self.history["min"]))
         # print job summary

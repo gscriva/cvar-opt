@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from src.cvar_opt import cvar_opt
+from src import cvar_opt
 
 parser = argparse.ArgumentParser()
 
@@ -71,7 +71,7 @@ parser.add_argument(
 
 
 def main(args: argparse.ArgumentParser):
-    cvar_opt(
+    cvar_opt.cvar_opt(
         args.qubits,
         args.circ_depth,
         args.shots,
