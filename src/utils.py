@@ -1,15 +1,12 @@
 import functools
 import json
 import os
-from json import JSONEncoder
 
 import numpy as np
 import qiskit
 from scipy import sparse
 
-from src.ising import Ising
-
-TOL = 0.01
+from . import ising
 
 
 def get_ising_params(
@@ -38,11 +35,11 @@ def get_ising_params(
     return J.astype(np.float64), h
 
 
-def compute_ising_min(ising: Ising) -> float:
-    def kron(gate_lst):
+def compute_ising_min(model: ising.Ising) -> float:
+    def kron(gate_lst: list[np.ndarray]) -> np.ndarray:
         return functools.reduce(np.kron, gate_lst)
 
-    def pauli_z(i, n):
+    def pauli_z(i: int, n: int) -> np.ndarray:
         if i < 0 or i >= n or n < 1:
             raise ValueError("Bad value of i and/or n.")
         pauli_z_lst = [
@@ -53,14 +50,14 @@ def compute_ising_min(ising: Ising) -> float:
     q_hamiltonian = sparse.coo_array(
         sum(
             [
-                ising.adj_matrix[i, j]
-                * pauli_z(i, ising.spins)
-                @ pauli_z(j, ising.spins)
-                for i in range(ising.spins)
-                for j in range(ising.spins)
+                model.adj_matrix[i, j]
+                * pauli_z(i, model.spins)
+                @ pauli_z(j, model.spins)
+                for i in range(model.spins)
+                for j in range(model.spins)
             ]
         )
-        + sum([ising.h_field[i] * pauli_z(i, ising.spins) for i in range(ising.spins)])
+        + sum([model.h_field[i] * pauli_z(i, model.spins) for i in range(model.spins)])
     )
     eigvalue, _ = sparse.linalg.eigsh(q_hamiltonian, k=4)
     return float(eigvalue.min())
@@ -72,7 +69,7 @@ def create_ising1d(
     type_ising: str,
     h_field: float,
     seed: int,
-) -> tuple[Ising, float]:
+) -> tuple[ising.Ising, float]:
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     # and D-Wave https://docs.dwavesys.com/docs/latest/c_gs_2.html#underlying-quantum-physics
@@ -83,15 +80,15 @@ def create_ising1d(
             continue
         adj_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
-    ising = Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
+    model = ising.Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
     # exact diagonalization would be too expensive
     if spins < 14 and type_ising == "binary":
-        min_eng = compute_ising_min(ising)
+        min_eng = compute_ising_min(model)
     elif type_ising == "ferro":
-        min_eng = ising.energy(-np.ones(ising.spins))
+        min_eng = model.energy(-np.ones(model.spins))
     else:
         min_eng = -np.inf
-    return ising, min_eng
+    return model, min_eng
 
 
 def create_qaoa_ansatz(
@@ -211,7 +208,7 @@ def collect_results(
     return psucc, ts, shots, nfevs
 
 
-class NumpyArrayEncoder(JSONEncoder):
+class NumpyArrayEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, np.ndarray):
             return obj.tolist()
@@ -219,4 +216,4 @@ class NumpyArrayEncoder(JSONEncoder):
             return bool(obj)
         if isinstance(obj, np.float64):
             return float(obj)
-        return JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
