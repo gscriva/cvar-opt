@@ -29,6 +29,7 @@ def cvar_opt(
     shots: list[int],
     maxiter: list[int],
     initial_points: list[int],
+    type_ansatz: str = "vqe",
     noise_model: bool = False,
     type_ising: str = "ferro",
     seed: int = 42,
@@ -38,21 +39,27 @@ def cvar_opt(
 ) -> None:
     start = datetime.now()
 
+    # create the circuit
+    ansatz = utils.create_ansatz(
+        qubits,
+        circ_depth,
+        type_ansatz,
+    )
     # define generator for initial point
     rng = np.random.default_rng(seed=SEED)
     thetas0: list[np.ndarray] = []
-    num_param = qubits * (circ_depth + 1)
+    num_param = ansatz.num_parameters
     # define initial_points different starting points
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
     for i in range(initial_points[1]):
         # skip initial points not needed
         if i < initial_points[0]:
-            _ = rng.uniform(-2 * math.pi, 2 * math.pi, num_param)
+            _ = rng.uniform(-math.pi, math.pi, num_param)
             continue
         # generate initial points
         # uniform in [-2pi,2pi]
-        thetas0.append(rng.uniform(-2 * math.pi, 2 * math.pi, num_param))
+        thetas0.append(rng.uniform(-math.pi, math.pi, num_param))
 
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
@@ -74,20 +81,9 @@ def cvar_opt(
             print(
                 f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {initial_points}"
             )
-            # create the circuit
-            # standard VQE ansatz
-            qc = qiskit.circuit.library.RealAmplitudes(
-                qubits,
-                reps=circ_depth,
-                insert_barriers=True,
-                entanglement="circular",
-            )
-            # measure all qubits at the end of the circuit
-            qc.measure_all()
-
             # define optimization class
             var_problem = vqe.VQE(
-                qc,
+                ansatz,
                 ising,
                 optimizer=METHOD,
                 backend=SIMULATOR_METHOD,

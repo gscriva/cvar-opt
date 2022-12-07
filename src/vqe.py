@@ -97,7 +97,7 @@ class VQE:
         return f"""\nVQE instance 
         Ansatz:
             qubits: {self.ansatz.num_qubits}
-            layers: {int(self.ansatz.num_parameters / self.ansatz.num_qubits - 1)}
+            name: {self.ansatz.name}
             parameters: {self.ansatz.num_parameters}
         Optimizer: {self.optimizer}
         Simulator: {self.simulator} with noise: {noise}

@@ -31,6 +31,13 @@ parser.add_argument(
     help="Number of initial points, i.e., different runs to produce. Use two values input to resume old run. (default: 1000)",
 )
 parser.add_argument(
+    "--type-ansatz",
+    type=str,
+    default="vqe",
+    choices={"vqe", "qaoa", "qaoa+"},
+    help="Choose the quantum ansatz to use (default: 'vqe')",
+)
+parser.add_argument(
     "--noise-model",
     action="store_true",
     help="Flag to run the circuit with a noisy simulator (default: False)",
@@ -77,6 +84,7 @@ def main(args: argparse.ArgumentParser):
         args.shots,
         args.maxiter,
         args.initial_points,
+        args.type_ansatz,
         args.noise_model,
         args.type_ising,
         args.seed,
