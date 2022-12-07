@@ -1,5 +1,6 @@
 import functools
 import json
+import math
 import os
 
 import numpy as np
@@ -7,6 +8,21 @@ import qiskit
 from scipy import sparse
 
 from . import ising
+
+
+def get_init_points(
+    initial_points: list[int], num_params: int, rng: np.random.Generator
+) -> list[np.ndarray]:
+    thetas0: list[np.ndarray] = []
+    for i in range(initial_points[1]):
+        # skip initial points not needed
+        if i < initial_points[0]:
+            _ = rng.uniform(-math.pi, math.pi, num_params)
+            continue
+        # generate initial points
+        # uniform in [-pi,pi]
+        thetas0.append(rng.uniform(-math.pi, math.pi, num_params))
+    return thetas0
 
 
 def get_ising_params(

@@ -1,5 +1,4 @@
 import json
-import math
 import multiprocessing as mp
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +25,7 @@ def cvar_opt(
     qubits: int,
     circ_depth: int,
     shots: list[int],
-    maxiter: list[int],
+    maxiters: list[int],
     initial_points: list[int],
     type_ansatz: str = "vqe",
     noise_model: bool = False,
@@ -46,20 +45,11 @@ def cvar_opt(
     )
     # define generator for initial point
     rng = np.random.default_rng(seed=SEED)
-    thetas0: list[np.ndarray] = []
-    num_param = ansatz.num_parameters
     # define initial_points different starting points
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
-    for i in range(initial_points[1]):
-        # skip initial points not needed
-        if i < initial_points[0]:
-            _ = rng.uniform(-math.pi, math.pi, num_param)
-            continue
-        # generate initial points
-        # uniform in [-2pi,2pi]
-        thetas0.append(rng.uniform(-math.pi, math.pi, num_param))
-
+    # generate initial points
+    thetas0 = utils.get_init_points(initial_points, ansatz.num_parameters, rng)
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
@@ -74,44 +64,45 @@ def cvar_opt(
     else:
         save_dir = Path().absolute()
 
-    for shot in shots:
-        for steps in maxiter:
-            start_it = datetime.now()
-            print(
-                f"\nShots: {shot}\tMaxiter: {steps}\tInitial Points: {initial_points}"
-            )
-            # define optimization class
-            var_problem = vqe.VQE(
-                ansatz,
-                ising,
-                optimizer=METHOD,
-                backend=SIMULATOR_METHOD,
-                noise_model=noise_model if noise_model else None,
-                shots=shot,
-                maxiter=steps,
-                alpha=alpha,
-                global_min=global_min,
-                verbose=verbose,
-            )
-            print(var_problem)
+    jobs = [(shot, maxiter) for shot in shots for maxiter in maxiters]
+    for shot, maxiter in jobs:
+        start_it = datetime.now()
+        print(f"\nShots: {shot}\tMaxiter: {maxiter}\tInitial Points: {initial_points}")
+        # define optimization class
+        var_problem = vqe.VQE(
+            ansatz,
+            ising,
+            optimizer=METHOD,
+            backend=SIMULATOR_METHOD,
+            noise_model=noise_model if noise_model else None,
+            shots=shot,
+            maxiter=maxiter,
+            alpha=alpha,
+            global_min=global_min,
+            verbose=verbose,
+        )
+        print(var_problem)
 
-            # optimize initial_points instances in parallel
-            # up to MAX_CPUS available on the system
-            with mp.Pool(processes=MAX_CPUS) as pool:
-                results = pool.map(var_problem.minimize, thetas0)
+        # optimize initial_points instances in parallel
+        # up to MAX_CPUS
+        processes = min(MAX_CPUS, len(thetas0))
+        with mp.Pool(processes) as pool:
+            results = pool.map(var_problem.minimize, thetas0)
 
-            # write on json to save results
-            filename = f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(steps).zfill(3)}.json"
-            with open(filename, "w") as file:
-                json.dump(results, file, cls=utils.NumpyArrayEncoder, indent=4)
+        # write on json to save results
+        filename = (
+            f"{save_dir}/shots{str(shot).zfill(4)}_maxiter{str(maxiter).zfill(3)}.json"
+        )
+        with open(filename, "w") as file:
+            json.dump(results, file, cls=utils.NumpyArrayEncoder, indent=4)
 
-            # report iteration execution time
-            stop_it = datetime.now()
-            # normalize per CPUs and iterations
-            per_cpu_runs = (initial_points[1] - initial_points[0]) / MAX_CPUS
-            delta_it = (stop_it - start_it) / per_cpu_runs
-            print(f"\nSave results in {filename}")
-            print(f"Per CPU time: {delta_it.total_seconds():.2f}s\n")
+        # report iteration execution time
+        stop_it = datetime.now()
+        # normalize per CPUs and iterations
+        per_cpu_runs = (initial_points[1] - initial_points[0]) / processes
+        delta_it = (stop_it - start_it) / per_cpu_runs
+        print(f"\nSave results in {filename}")
+        print(f"CPU-per-job time: {delta_it.total_seconds():.2f}s\n")
 
     # report total execution time
     stop = datetime.now()

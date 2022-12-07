@@ -17,7 +17,7 @@ parser.add_argument(
     help="Number circuit evaluations, may be a list (default: 1024)",
 )
 parser.add_argument(
-    "--maxiter",
+    "--maxiters",
     nargs="+",
     type=int,
     default=[None],
@@ -82,7 +82,7 @@ def main(args: argparse.ArgumentParser):
         args.qubits,
         args.circ_depth,
         args.shots,
-        args.maxiter,
+        args.maxiters,
         args.initial_points,
         args.type_ansatz,
         args.noise_model,
