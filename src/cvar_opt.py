@@ -17,7 +17,7 @@ MAX_CPUS = min(int(mp.cpu_count() / 2), 12)
 # and external field (present only in ferro model)
 DIM = 1
 H_FIELD = -0.05
-# seed random point
+# seed for initils points
 SEED = 42
 
 
@@ -37,18 +37,17 @@ def cvar_opt(
 ) -> None:
     start = datetime.now()
 
-    # create the circuit
+    # create the quantum ansatz
     ansatz = utils.create_ansatz(
         qubits,
         circ_depth,
         type_ansatz,
     )
-    # define generator for initial point
+    # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
-    # define initial_points different starting points
+    # define different starting points
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
-    # generate initial points
     thetas0 = utils.get_init_points(initial_points, ansatz.num_parameters, rng)
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
