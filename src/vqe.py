@@ -198,11 +198,6 @@ class VQE:
             # cast the sample in np.ndarray
             # and in ising notation {+1,-1}
             sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
-            # TODO is it faster?
-            # energy = self.expectation._saved_engs.get(sample)
-            # if energy is None:
-            #     energy = self.expectation.energy(sample_ising)
-            #     self.expectation._saved_engs[sample] = energy
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
             if last:
@@ -242,6 +237,8 @@ class VQE:
         _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
         # collect information for the results dict
         success: bool = math.isclose(eng_opt, self.global_min)
+        # success is True if the opt_res is correct
+        # but we report also if the minimum was found at least once
         ever_found: bool = (
             math.isclose(np.asarray(self.history["min"]).min(), self.global_min)
             or success
@@ -250,7 +247,7 @@ class VQE:
         # print job summary
         if self._verbose > 0:
             print(
-                f"Minimum: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:6.2f}\tGlobal minimum: {success} ({ever_found} [{where_found}])"
+                f"Results: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:6.2f}\tGlobal minimum: {success} ({ever_found} [{where_found}])"
             )
             if self._verbose > 1:
                 print("\n")
@@ -264,6 +261,7 @@ class VQE:
             "ever_found": ever_found,
             "history": self.history,
             "shots": self.shots,
+            "global_min": self.global_min,
         }
         return result
 

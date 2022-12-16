@@ -1,4 +1,5 @@
 import functools
+import itertools
 import json
 import math
 import os
@@ -34,24 +35,43 @@ def get_ising_params(
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     if type_ising == "ferro":
-        J = -np.ones(spins)
+        J = -np.ones(spins - 1)
         h = np.zeros(spins) - h_field
     elif type_ising == "binary":
         ising_rng = np.random.default_rng(seed=seed)
         J = (
             ising_rng.integers(
-                0,
-                2,
-                size=spins,
+                low=0,
+                high=2,
+                size=spins - 1,
             )
             * 2
             - 1
         )
         h = np.zeros(spins)
+    elif type_ising == "random":
+        ising_rng = np.random.default_rng(seed=seed)
+        J = ising_rng.normal(
+            loc=0.0,
+            scale=1.0,
+            size=spins - 1,
+        )
+        h = ising_rng.normal(
+            loc=0.0,
+            scale=1.0,
+            size=spins,
+        )
     return J.astype(np.float64), h
 
 
 def compute_ising_min(model: ising.Ising) -> float:
+    energies = []
+    for sample in itertools.product([0, 1], repeat=model.spins):
+        energies.append(model.energy(np.asarray(sample) * 2 - 1))
+    return np.asarray(energies).min()
+
+
+def compute_ising_min_OLD(model: ising.Ising) -> float:
     def kron(gate_lst: list[np.ndarray]) -> np.ndarray:
         return functools.reduce(np.kron, gate_lst)
 
@@ -97,8 +117,8 @@ def create_ising1d(
         adj_dict[(i, i + 1)] = J[i]
     # class devoted to set the couplings and get the energy
     model = ising.Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
-    # exact diagonalization would be too expensive
-    if spins < 14 and type_ising == "binary":
+    # exact enumeration would be too expensive for large sizes
+    if spins < 22 and (type_ising == "binary" or type_ising == "random"):
         min_eng = compute_ising_min(model)
     elif type_ising == "ferro":
         min_eng = model.energy(-np.ones(model.spins))
@@ -203,19 +223,22 @@ def collect_results(
                 # data are a list with #initial_points elements
                 data = json.load(file)
             ever_found = []
+            nfevs = []
             # for each shot and iteration param
             # we randomized the initial point
             # to estimate the right probability
             for run in data:
                 ever_found.append(run["ever_found"])
+                nfevs.append(run["nfev"])
             # compute p('found minimum')
             p_everfound.append(
                 np.mean(np.asarray(ever_found, dtype=np.float128))
             )  # float128 to avoid to many zeros
+            nfev = int(math.ceil(np.asarray(nfevs).mean()))
             # maxiter*shots = actual number of iteration
-            t.append(run["shots"] * run["nfev"])
+            t.append(run["shots"] * nfev)
             s.append(run["shots"])
-            it.append(run["nfev"])
+            it.append(nfev)
         # update list for each number of qubits
         ts.append(t)
         psucc.append(p_everfound)

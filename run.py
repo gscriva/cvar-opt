@@ -46,7 +46,7 @@ parser.add_argument(
     "--type-ising",
     type=str,
     default="ferro",
-    choices={"ferro", "binary"},
+    choices={"ferro", "binary", "random"},
     help="Change between ferromagnetic and random binary model (default: 'ferro')",
 )
 parser.add_argument(
