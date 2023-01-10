@@ -47,13 +47,13 @@ parser.add_argument(
     type=str,
     default="ferro",
     choices={"ferro", "binary", "random"},
-    help="Change between ferromagnetic and random binary model (default: 'ferro')",
+    help="Change between ferromagnetic, random binary model and random gaussian model with external field (default: 'ferro')",
 )
 parser.add_argument(
     "--seed",
     type=int,
     default=42,
-    help="Seed to generate different ising random models (default: 42)",
+    help="Seed to generate different ising random models [only apply with random gaussian] (default: 42)",
 )
 parser.add_argument(
     "--alpha",
