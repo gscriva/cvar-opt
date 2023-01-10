@@ -195,9 +195,11 @@ class VQE:
         eng_opt: float = np.inf
         sample_opt: np.ndarray = np.empty(self.expectation.spins)
         for sample, count in counts.items():
-            # cast the sample in np.ndarray
-            # and in ising notation {+1,-1}
-            sample_ising = np.asarray(list(sample), dtype=int) * 2 - 1
+            # invert output string order
+            # due to Big Endian / Little Endian qiskit issue, see also
+            # https://quantumcomputing.stackexchange.com/questions/8244/big-endian-vs-little-endian-in-qiskit
+            # and cast the sample in np.ndarray with in ising notation {+1,-1}
+            sample_ising = np.asarray(list(sample)[::-1], dtype=int) * 2 - 1
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
             if last:
