@@ -130,6 +130,7 @@ def create_ising1d(
 def create_qaoa_ansatz(
     num_qubits: int,
     circ_depth: int,
+    hamiltonian: ising.Ising,
     increase_params: bool = False,
 ) -> qiskit.QuantumCircuit:
     """Create a quantum ansatz inspired by the problem Hamiltonian.
@@ -140,10 +141,11 @@ def create_qaoa_ansatz(
     Args:
         num_qubits (int): Number of qubits.
         circ_depth (int): Depth of the circuit, minimum 1.
+        hamiltonian (ising.Ising): Problem Hamiltonian.
         increase_params (bool, optional): Allows betas and gammas to change in each layer. Defaults to False.
 
     Returns:
-        qiskit.QuantumCircuit: QAOA-like ansatz.
+        qiskit.QuantumCircuit: QAOA or QAOA+ ansatz.
     """
     # define circuit
     name = f"QAOA+ p={circ_depth}" if increase_params else f"QAOA p={circ_depth}"
@@ -165,15 +167,19 @@ def create_qaoa_ansatz(
         # add Rx parametric gates
         for j in range(num_qubits):
             if increase_params:
-                qc.rx(2 * thetas[(2 * num_qubits - 1) * i + j], j)
+                qc.rx(thetas[(2 * num_qubits - 1) * i + j], j)
             else:
-                qc.rx(2 * betas[i], j)
+                qc.rx(betas[i], j)
         # add R_zz parametric gates
-        for j in range(num_qubits - 1):
+        for j, j_coupling in enumerate(hamiltonian.adj_dict.values()):
             if increase_params:
-                qc.rzz(2 * thetas[(2 * num_qubits - 1) * i + num_qubits + j], j, j + 1)
+                qc.rzz(
+                    j_coupling * thetas[(2 * num_qubits - 1) * i + num_qubits + j],
+                    j,
+                    j + 1,
+                )
             else:
-                qc.rzz(2 * gammas[i], j, j + 1)
+                qc.rzz(j_coupling * gammas[i], j, j + 1)
         # do not put barrier in the last iteration
         if i == circ_depth - 1:
             continue
@@ -181,7 +187,9 @@ def create_qaoa_ansatz(
     return qc
 
 
-def create_ansatz(qubits: int, circ_depth: int, ansatz_type: str):
+def create_ansatz(
+    qubits: int, circ_depth: int, ansatz_type: str, hamiltonian: ising.Ising
+):
     if ansatz_type == "vqe":
         # standard VQE ansatz
         qc = qiskit.circuit.library.RealAmplitudes(
@@ -193,7 +201,7 @@ def create_ansatz(qubits: int, circ_depth: int, ansatz_type: str):
         )
     elif ansatz_type == "qaoa" or ansatz_type == "qaoa+":
         increase_params = True if ansatz_type == "qaoa+" else False
-        qc = create_qaoa_ansatz(qubits, circ_depth, increase_params)
+        qc = create_qaoa_ansatz(qubits, circ_depth, hamiltonian, increase_params)
     else:
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
     qc.measure_all()

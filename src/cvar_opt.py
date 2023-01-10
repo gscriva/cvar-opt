@@ -36,12 +36,18 @@ def cvar_opt(
     verbose: int = 0,
 ) -> None:
     start = datetime.now()
-
+    
+    # hamiltonian is defined with +
+    # following http://spinglass.uni-bonn.de/ notation
+    ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
+    print(ising)
+    print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
     # create the quantum ansatz
     ansatz = utils.create_ansatz(
         qubits,
         circ_depth,
         type_ansatz,
+        ising,
     )
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
@@ -49,11 +55,6 @@ def cvar_opt(
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
     thetas0 = utils.get_init_points(initial_points, ansatz.num_parameters, rng)
-    # hamiltonian is defined with +
-    # following http://spinglass.uni-bonn.de/ notation
-    ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
-    print(ising)
-    print(f"J: {ising.adj_dict}\nh: {ising.h_field}\n")
 
     # check if directory exists
     if save_dir is not None:
