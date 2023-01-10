@@ -136,6 +136,7 @@ results/
 *.png
 *.pdf
 *.out
+*.csv
 
 # bash
 *.sh
