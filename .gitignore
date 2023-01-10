@@ -137,6 +137,8 @@ results/
 *.pdf
 *.out
 *.csv
+*.tar
+*.gz
 
 # bash
 *.sh
