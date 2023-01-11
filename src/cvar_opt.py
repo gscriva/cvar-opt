@@ -48,6 +48,7 @@ def cvar_opt(
         circ_depth,
         type_ansatz,
         ising,
+        verbose=verbose,
     )
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)

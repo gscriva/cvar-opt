@@ -169,7 +169,11 @@ def create_qaoa_ansatz(
 
 
 def create_ansatz(
-    qubits: int, circ_depth: int, ansatz_type: str, hamiltonian: ising.Ising
+    qubits: int,
+    circ_depth: int,
+    ansatz_type: str,
+    hamiltonian: ising.Ising,
+    verbose: int = 0,
 ):
     if ansatz_type == "vqe":
         # standard VQE ansatz
@@ -186,6 +190,8 @@ def create_ansatz(
     else:
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
     qc.measure_all()
+    if verbose > 0 and qubits < 8:
+        print(qc)
     return qc
 
 
