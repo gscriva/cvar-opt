@@ -71,34 +71,6 @@ def compute_ising_min(model: ising.Ising) -> float:
     return np.asarray(energies).min()
 
 
-def compute_ising_min_OLD(model: ising.Ising) -> float:
-    def kron(gate_lst: list[np.ndarray]) -> np.ndarray:
-        return functools.reduce(np.kron, gate_lst)
-
-    def pauli_z(i: int, n: int) -> np.ndarray:
-        if i < 0 or i >= n or n < 1:
-            raise ValueError("Bad value of i and/or n.")
-        pauli_z_lst = [
-            np.array([[1, 0], [0, -1]]) if j == i else np.eye(2) for j in range(n)
-        ]
-        return kron(pauli_z_lst)
-
-    q_hamiltonian = sparse.coo_array(
-        sum(
-            [
-                model.adj_matrix[i, j]
-                * pauli_z(i, model.spins)
-                @ pauli_z(j, model.spins)
-                for i in range(model.spins)
-                for j in range(model.spins)
-            ]
-        )
-        + sum([model.h_field[i] * pauli_z(i, model.spins) for i in range(model.spins)])
-    )
-    eigvalue, _ = sparse.linalg.eigsh(q_hamiltonian, k=4)
-    return float(eigvalue.min())
-
-
 def create_ising1d(
     spins: int,
     dim: int,
