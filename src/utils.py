@@ -130,6 +130,9 @@ def create_qaoa_ansatz(
         thetas = qiskit.circuit.ParameterVector(
             "$\\theta$", (2 * num_qubits - 1) * circ_depth
         )
+        print(
+            RuntimeWarning("WARNING: External field not present in the circuit ansatz")
+        )
     else:
         # calssical QAOA ansatz
         betas = qiskit.circuit.ParameterVector("$\\beta$", circ_depth)
@@ -142,6 +145,12 @@ def create_qaoa_ansatz(
                 qc.rx(thetas[(2 * num_qubits - 1) * i + j], j)
             else:
                 qc.rx(betas[i], j)
+        # add Rz parametric gates
+        for j, h_j in enumerate(hamiltonian.h_field):
+            if increase_params:
+                pass
+            else:
+                qc.rz(h_j * gammas[i], j)
         # add R_zz parametric gates
         for j, j_coupling in enumerate(hamiltonian.adj_dict.values()):
             if increase_params:
