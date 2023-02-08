@@ -139,18 +139,6 @@ def create_qaoa_ansatz(
         gammas = qiskit.circuit.ParameterVector("$\\gamma$", circ_depth)
     # add circ_depth layers
     for i in range(circ_depth):
-        # add Rx parametric gates
-        for j in range(num_qubits):
-            if increase_params:
-                qc.rx(thetas[(2 * num_qubits - 1) * i + j], j)
-            else:
-                qc.rx(betas[i], j)
-        # add Rz parametric gates
-        for j, h_j in enumerate(hamiltonian.h_field):
-            if increase_params:
-                pass
-            else:
-                qc.rz(h_j * gammas[i], j)
         # add R_zz parametric gates
         for j, j_coupling in enumerate(hamiltonian.adj_dict.values()):
             if increase_params:
@@ -161,6 +149,19 @@ def create_qaoa_ansatz(
                 )
             else:
                 qc.rzz(j_coupling * gammas[i], j, j + 1)
+        qc.barrier()
+        # add Rz parametric gates
+        for j, h_j in enumerate(hamiltonian.h_field):
+            if increase_params:
+                pass
+            else:
+                qc.rz(h_j * gammas[i], j)
+        # add Rx parametric gates
+        for j in range(num_qubits):
+            if increase_params:
+                qc.rx(thetas[(2 * num_qubits - 1) * i + j], j)
+            else:
+                qc.rx(betas[i], j)
         # do not put barrier in the last iteration
         if i == circ_depth - 1:
             continue
