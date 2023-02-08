@@ -153,7 +153,7 @@ def create_qaoa_ansatz(
         # add Rz parametric gates
         for j, h_j in enumerate(hamiltonian.h_field):
             if increase_params:
-                pass
+                qc.rz(h_j * thetas[(2 * num_qubits - 1) * i + j], j)
             else:
                 qc.rz(h_j * gammas[i], j)
         # add Rx parametric gates
