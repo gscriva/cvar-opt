@@ -50,7 +50,7 @@ class VQE:
         optimizer: str = "COBYLA",
         backend: str = "automatic",
         noise_model: Optional[bool] = None,
-        shots: int = 1024,
+        shots: Optional[int] = None,
         maxiter: Optional[int] = None,
         alpha: int = 25,
         global_min: float = -np.inf,
@@ -64,7 +64,7 @@ class VQE:
             optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
             backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
             noise_model (bool, optional): If True a custom noise is added. Defaults to None.
-            shots (int, optional): Number of sample from the circuit. Defaults to 1024.
+            shots (Optional[int], optional): Number of sample from the circuit. Defaults to None.
             maxiter (Optional[int], optional): Maximum number of iteration of the classical optimizer,
                 if None it runs until convergence up to a tollerance. Defaults to None.
             alpha (int, optional): Alpha quantile used in CVaR-VQE. Defaults to 25.
@@ -90,7 +90,7 @@ class VQE:
         self._global_min = global_min
         self._verbose = verbose
         # save minimum value and loss at each iteration
-        self._history: dict[str, list[float]] = {"min": [], "loss": []}
+        self._history: dict[str, list[float]] = {"min": []}
 
     def __str__(self) -> str:
         noise = True if self.simulator.options.noise_model is not None else False
@@ -124,7 +124,7 @@ class VQE:
         return self._simulator
 
     @property
-    def shots(self) -> int:
+    def shots(self) -> Optional[int]:
         return self._shots
 
     @property
@@ -210,34 +210,61 @@ class VQE:
                     sample_opt = np.copy(sample_ising)
         return np.asarray(energies), sample_opt, eng_opt
 
-    def _update_history(self, min_energy: float, loss: float) -> None:
-        self._history["loss"].append(loss)
+    def _update_history(self, min_energy: float) -> None:
         self._history["min"].append(min_energy)
 
     def _minimize_func(self, parameters: np.ndarray) -> float:
         # update the circuit and get results
         circuit = self._update_ansatz(parameters)
-        counts = self._eval_ansatz(circuit)
-        # compute energy according to the ising model
-        energies, _, _ = self._compute_expectation(counts)
-        # get the alpha-th percentile
-        cvar = np.percentile(energies, self.alpha)
-        # sum all the energies below cvar
-        loss = energies[energies <= cvar].mean()
-        # store results of each iteration
-        self._update_history(float(energies.min()), float(loss))
-        if self._verbose > 1:
-            print(f"loss: {loss:4.3}\tmin: {energies.min():4.3}\t{counts}")
+        if self.shots is not None:
+            counts = self._eval_ansatz(circuit)
+            # compute energy according to the ising model
+            energies, _, _ = self._compute_expectation(counts)
+            # get the alpha-th percentile
+            cvar = np.percentile(energies, self.alpha)
+            # sum all the energies below cvar
+            loss = energies[energies <= cvar].mean()
+            # store results of each iteration
+            self._update_history(float(energies.min()))
+            if self._verbose > 1:
+                print(f"min: {energies.min():4.3}\t{counts}")
+        else:
+            circuit.save_statevector()
+            circuit = qiskit.transpile(circuit, self.simulator)
+            job = self.simulator.run(circuit)
+            # Grab results from the job
+            result = job.result()
+            statevector = result.get_statevector(circuit).data
+            # retrieve the exact state energy
+            loss = np.real(
+                statevector @ self.expectation.quantum_hamiltonian @ statevector
+            )
+            if self._verbose > 1:
+                print(f"min: {loss:4.3}\t{statevector}")
+            # here we have a single exact energy value
+            self._update_history(float(loss))
         return float(loss)
 
     def _eval_result(self, opt_res: optimize.OptimizeResult) -> dict[str, Any]:
         # update the circuit and get results
         # usinig the optimized results
         circuit = self._update_ansatz(opt_res.x)
-        counts = self._eval_ansatz(circuit)
-        # get the min energy and its relative sample
-        _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
-        # collect information for the results dict
+        if self.shots is not None:
+            counts = self._eval_ansatz(circuit)
+            # get the min energy and its relative sample
+            _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
+        else:
+            circuit.save_statevector()
+            circuit = qiskit.transpile(circuit, self.simulator)
+            job = self.simulator.run(circuit)
+            # Grab results from the job
+            result = job.result()
+            sample_opt = result.get_statevector(circuit).data
+            # retrieve the exact state energy
+            eng_opt = np.real(
+                sample_opt @ self.expectation.quantum_hamiltonian @ sample_opt
+            )
+        # save if the optimal parameter is successfull
         success: bool = math.isclose(eng_opt, self.global_min)
         # success is True if the opt_res is correct
         # but we report also if the minimum was found at least once
@@ -270,7 +297,7 @@ class VQE:
     def minimize(self, initial_point: np.ndarray) -> dict[str, Any]:
         # reset history
         # needed if the same VQE has been used for more than one job
-        self._history: dict[list[float], list[float]] = {"min": [], "loss": []}
+        self._history: dict[list[float], list[float]] = {"min": []}
         # start initialization
         opt_res = optimize.minimize(
             self._minimize_func,

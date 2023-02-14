@@ -48,8 +48,11 @@ def cvar_opt(
         circ_depth,
         type_ansatz,
         ising,
+        measure=False if shots[0] is None else True, 
         verbose=verbose,
     )
+    # check ansatz consistency
+    assert (len(shots)==1) and (None in shots), "Invalid input for shots" 
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
     # define different starting points

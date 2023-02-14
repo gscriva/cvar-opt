@@ -1,6 +1,8 @@
+import functools
 from typing import Optional
 
 import numpy as np
+from scipy import sparse
 
 
 class Ising:
@@ -48,13 +50,13 @@ class Ising:
         ), f"External h field shape {h_field.shape[0]} does not match spins number {self.spins}"
 
         self._create_adj_matrix()
+        self._create_quantum_hamiltonian()
 
     def __str__(self) -> str:
         return f"""\nIsing Model 
         Spins N={self.spins}
         Dimension D={self.dim}
         Connectivity: z = {(self.adj_matrix != 0).sum(-1).max()}
-
         """
 
     @classmethod
@@ -102,6 +104,10 @@ class Ising:
     def adj_matrix(self) -> np.ndarray:
         return self._adj_matrix
 
+    @property
+    def quantum_hamiltonian(self) -> sparse.coo_array:
+        return self._quantum_hamiltonian
+
     def _check(self, adj_dict: dict[tuple[int, int], float]) -> None:
         for key, val in adj_dict.items():
             # do not save J_ij if J_ji is present
@@ -116,6 +122,31 @@ class Ising:
         self._adj_matrix = np.zeros((self.spins, self.spins))
         for (i, j), coupling in self._adj_dict.items():
             self._adj_matrix[i, j] = coupling
+
+    def _create_quantum_hamiltonian(self) -> None:
+        def kron(gate_lst):
+            return functools.reduce(np.kron, gate_lst)
+
+        def pauli_z(i, n):
+            if i < 0 or i >= n or n < 1:
+                raise ValueError("Bad value of i and/or n.")
+            pauli_z_lst = [
+                np.array([[1, 0], [0, -1]]) if j == i else np.eye(2) for j in range(n)
+            ]
+            return kron(pauli_z_lst)
+
+        self._quantum_hamiltonian = sparse.coo_array(
+            sum(
+                [
+                    self.adj_matrix[i, j]
+                    * pauli_z(i, self.spins)
+                    @ pauli_z(j, self.spins)
+                    for i in range(self.spins)
+                    for j in range(self.spins)
+                ]
+            )
+            + sum([self.h_field[i] * pauli_z(i, self.spins) for i in range(self.spins)])
+        )
 
     def energy(self, sample: np.ndarray) -> float:
         eng = np.einsum("ij,i,j", self.adj_matrix, sample, sample)

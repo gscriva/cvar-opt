@@ -165,7 +165,6 @@ def create_qaoa_ansatz(
         # do not put barrier in the last iteration
         if i == circ_depth - 1:
             continue
-        qc.barrier()
     return qc
 
 
@@ -174,6 +173,7 @@ def create_ansatz(
     circ_depth: int,
     ansatz_type: str,
     hamiltonian: ising.Ising,
+    measure: bool,
     verbose: int = 0,
 ):
     if ansatz_type == "vqe":
@@ -190,7 +190,9 @@ def create_ansatz(
         qc = create_qaoa_ansatz(qubits, circ_depth, hamiltonian, increase_params)
     else:
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
-    qc.measure_all()
+    if measure:
+      qc.barrier()
+      qc.measure_all()
     if verbose > 0 and qubits < 8:
         print(qc)
     return qc

@@ -13,8 +13,8 @@ parser.add_argument(
     "--shots",
     nargs="+",
     type=int,
-    default=[1024],
-    help="Number circuit evaluations, may be a list (default: 1024)",
+    default=[None],
+    help="Number circuit evaluations, may be a list. If None the exact quantum hamiltonian is used. (default: None)",
 )
 parser.add_argument(
     "--maxiters",
