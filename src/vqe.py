@@ -238,7 +238,9 @@ class VQE:
             # retrieve the exact state
             #  energy
             loss = np.real(
-                np.vdot(statevector, self.expectation.quantum_hamiltonian @ statevector)
+                self.expectation.quantum_hamiltonian.dot(statevector)
+                .conjugate()
+                .dot(statevector)
             )
             if self._verbose > 1:
                 print(f"min: {loss:4.3}")
