@@ -180,8 +180,9 @@ class VQE:
     ) -> qiskit.result.counts.Counts:
         # Execute the circuit with fixed params
         job = self.simulator.run(
-            qiskit.transpile(circuit, self.simulator), shots=self.shots
-        )
+            qiskit.transpile(circuit, self.simulator),
+            shots=self.shots if self.shots is not None else 16,
+        )  # TODO hardcoding to fix
         # Grab results from the job
         result = job.result().get_counts()
         # return counts
@@ -227,20 +228,20 @@ class VQE:
             # store results of each iteration
             self._update_history(float(energies.min()))
             if self._verbose > 1:
-                print(f"min: {energies.min():4.3}\t{counts}")
+                print(f"loss: {loss} min: {energies.min():4.3}\t{counts}")
         else:
             circuit.save_statevector()
             circuit = qiskit.transpile(circuit, self.simulator)
             job = self.simulator.run(circuit)
             # Grab results from the job
-            result = job.result()
-            statevector = result.get_statevector(circuit).data
-            # retrieve the exact state energy
+            statevector = job.result().get_statevector(circuit).data
+            # retrieve the exact state
+            #  energy
             loss = np.real(
-                statevector @ self.expectation.quantum_hamiltonian @ statevector
+                np.vdot(statevector, self.expectation.quantum_hamiltonian @ statevector)
             )
             if self._verbose > 1:
-                print(f"min: {loss:4.3}\t{statevector}")
+                print(f"min: {loss:4.3}")
             # here we have a single exact energy value
             self._update_history(float(loss))
         return float(loss)
@@ -249,21 +250,11 @@ class VQE:
         # update the circuit and get results
         # usinig the optimized results
         circuit = self._update_ansatz(opt_res.x)
-        if self.shots is not None:
-            counts = self._eval_ansatz(circuit)
-            # get the min energy and its relative sample
-            _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
-        else:
-            circuit.save_statevector()
-            circuit = qiskit.transpile(circuit, self.simulator)
-            job = self.simulator.run(circuit)
-            # Grab results from the job
-            result = job.result()
-            sample_opt = result.get_statevector(circuit).data
-            # retrieve the exact state energy
-            eng_opt = np.real(
-                sample_opt @ self.expectation.quantum_hamiltonian @ sample_opt
-            )
+        if self.shots is None:
+            circuit.measure_all()
+        counts = self._eval_ansatz(circuit)
+        # get the min energy and its relative sample
+        _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
         # save if the optimal parameter is successfull
         success: bool = math.isclose(eng_opt, self.global_min)
         # success is True if the opt_res is correct
@@ -288,7 +279,6 @@ class VQE:
             "eng_opt": eng_opt,
             "success": success,
             "ever_found": ever_found,
-            "history": self.history,
             "shots": self.shots,
             "global_min": self.global_min,
         }

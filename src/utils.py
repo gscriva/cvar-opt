@@ -18,11 +18,11 @@ def get_init_points(
     for i in range(initial_points[1]):
         # skip initial points not needed
         if i < initial_points[0]:
-            _ = rng.uniform(-math.pi, math.pi, num_params)
+            _ = rng.uniform(0, 2 * math.pi, num_params)
             continue
         # generate initial points
         # uniform in [-pi,pi]
-        thetas0.append(rng.uniform(-math.pi, math.pi, num_params))
+        thetas0.append(rng.uniform(0, 2 * math.pi, num_params))
     return thetas0
 
 
@@ -191,8 +191,8 @@ def create_ansatz(
     else:
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
     if measure:
-      qc.barrier()
-      qc.measure_all()
+        qc.barrier()
+        qc.measure_all()
     if verbose > 0 and qubits < 8:
         print(qc)
     return qc
