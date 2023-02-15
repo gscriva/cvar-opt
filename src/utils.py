@@ -159,7 +159,7 @@ def create_qaoa_ansatz(
         # add Rx parametric gates
         for j in range(num_qubits):
             if increase_params:
-                qc.rx(thetas[(2 * num_qubits - 1) * (i + 1)], j)
+                qc.rx(thetas[(2 * num_qubits) * (i + 1) - 1], j)
             else:
                 qc.rx(betas[i], j)
         # do not put barrier in the last iteration
