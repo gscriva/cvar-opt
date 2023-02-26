@@ -236,7 +236,7 @@ class VQE:
             # Grab results from the job
             statevector = job.result().get_statevector(circuit).data
             # retrieve the exact state
-            #  energy
+            # and compute its exact energy
             loss = np.real(
                 self.expectation.quantum_hamiltonian.dot(statevector)
                 .conjugate()
@@ -249,18 +249,20 @@ class VQE:
         return float(loss)
 
     def _eval_result(self, opt_res: optimize.OptimizeResult) -> dict[str, Any]:
-        # update the circuit and get results
-        # usinig the optimized results
+        # update the circuit and sample results
+        # using the optimized results
         circuit = self._update_ansatz(opt_res.x)
         if self.shots is None:
+            # in the last evaluation 
+            # we measure from the circuit
             circuit.measure_all()
         counts = self._eval_ansatz(circuit)
         # get the min energy and its relative sample
         _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
-        # save if the optimal parameter is successfull
-        success: bool = math.isclose(eng_opt, self.global_min)
+        # store if the optimal parameter is successfull
+        success = math.isclose(eng_opt, self.global_min)
         # success is True if the opt_res is correct
-        # but we report also if the minimum was found at least once
+        # but we report also if the minimum was found at the least iteration
         ever_found: bool = (
             math.isclose(np.asarray(self.history["min"]).min(), self.global_min)
             or success
