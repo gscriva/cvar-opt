@@ -10,19 +10,34 @@ from scipy import sparse
 
 from . import ising
 
+OPT_T = 0.78
+
 
 def get_init_points(
     initial_points: list[int], num_params: int, rng: np.random.Generator
 ) -> list[np.ndarray]:
-    thetas0: list[np.ndarray] = []
-    for i in range(initial_points[1]):
-        # skip initial points not needed
-        if i < initial_points[0]:
-            _ = rng.uniform(0, 2 * math.pi, num_params)
-            continue
-        # generate initial points
-        # uniform in [-pi,pi]
-        thetas0.append(rng.uniform(0, 2 * math.pi, num_params))
+    if initial_points[1] == 0:
+        # Optimized initialization following
+        # https://doi.org/10.22331/q-2021-07-01-491
+        depth = num_params // 2
+        opt_thetas0 = [
+            [i * OPT_T / depth, (1 - i / depth) * OPT_T] for i in range(1, depth + 1)
+        ]
+        thetas0 = [np.asarray(opt_thetas0).ravel()]
+    else:
+        thetas0: list[np.ndarray] = []
+        for i in range(initial_points[1]):
+            # skip if optimized thetas are requested
+            if initial_points[1] == 0:
+                break
+            # skip initial points not needed
+            # usefull for resuming jobs
+            if i < initial_points[0]:
+                _ = rng.uniform(0, 2 * math.pi, num_params)
+                continue
+            # generate initial points
+            # uniform in [0,2*pi]
+            thetas0.append(rng.uniform(0, 2 * math.pi, num_params))
     return thetas0
 
 
