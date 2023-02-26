@@ -36,7 +36,7 @@ def cvar_opt(
     verbose: int = 0,
 ) -> None:
     start = datetime.now()
-    
+
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
@@ -48,11 +48,13 @@ def cvar_opt(
         circ_depth,
         type_ansatz,
         ising,
-        measure=False if shots[0] is None else True, 
+        measure=False if shots[0] is None else True,
         verbose=verbose,
     )
     # check ansatz consistency
-    assert (len(shots)==1) and (None in shots), "Invalid input for shots" 
+    assert ((len(shots) == 1) and (None in shots)) or (
+        len(shots) == 1
+    ), "Invalid input for shots"
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
     # define different starting points
@@ -103,7 +105,7 @@ def cvar_opt(
         # report iteration execution time
         stop_it = datetime.now()
         # normalize per CPUs and iterations
-        per_cpu_runs = (initial_points[1] - initial_points[0]) / processes
+        per_cpu_runs = max((initial_points[1] - initial_points[0]), 1) / processes
         delta_it = (stop_it - start_it) / per_cpu_runs
         print(f"\nSave results in {filename}")
         print(f"CPU-per-job time: {delta_it.total_seconds():.2f}s\n")
