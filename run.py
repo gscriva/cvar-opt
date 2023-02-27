@@ -28,7 +28,12 @@ parser.add_argument(
     nargs="+",
     type=int,
     default=[1000],
-    help="Number of initial points, i.e., different runs to produce. Use two values input to resume old run. If zero is passed, the optimized angles are used. (default: 1000)",
+    help="Number of initial points, i.e., different runs to produce. Use two values input to resume old run. (default: 1000)",
+)
+parser.add_argument(
+    "--opt-parameters",
+    action="store_true",
+    help="Flag for using the optimized parameters, only for QAOA. (default: False)",
 )
 parser.add_argument(
     "--type-ansatz",
@@ -84,6 +89,7 @@ def main(args: argparse.ArgumentParser):
         args.shots,
         args.maxiters,
         args.initial_points,
+        args.opt_parameters,
         args.type_ansatz,
         args.noise_model,
         args.type_ising,

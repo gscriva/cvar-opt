@@ -27,6 +27,7 @@ def cvar_opt(
     shots: list[int],
     maxiters: list[int],
     initial_points: list[int],
+    opt_parameters: bool = False,
     type_ansatz: str = "vqe",
     noise_model: bool = False,
     type_ising: str = "ferro",
@@ -55,12 +56,22 @@ def cvar_opt(
     assert ((len(shots) == 1) and (None in shots)) or (
         len(shots) == 1
     ), "Invalid input for shots"
+    # check input parameters consistency
+    # opt_parameters only available for QAOA
+    assert (
+        type_ansatz == "qaoa" or not opt_parameters
+    ), "Optimized parameters for QAOA ansatz only"
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
     # define different starting points
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
-    thetas0 = utils.get_init_points(initial_points, ansatz.num_parameters, rng)
+    thetas0 = utils.get_init_points(
+        initial_points,
+        ansatz.num_parameters,
+        rng,
+        opt_parameters,
+    )
 
     # check if directory exists
     if save_dir is not None:
