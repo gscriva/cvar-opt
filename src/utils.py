@@ -19,19 +19,8 @@ def get_init_points(
     rng: np.random.Generator,
     opt_parameters: bool,
 ) -> list[np.ndarray]:
-    if opt_parameters:
-        # Optimized initialization following
-        # https://doi.org/10.22331/q-2021-07-01-491
-        depth = num_params // 2
-        opt_thetas0 = [
-            [i * OPT_T / depth, (1 - i / depth) * OPT_T] for i in range(1, depth + 1)
-        ]
-        thetas0 = [np.asarray(opt_thetas0).ravel()]
     thetas0: list[np.ndarray] = []
     for i in range(initial_points[1]):
-        # skip if optimized thetas are requested
-        if initial_points[1] == 0:
-            break
         # skip initial points not needed
         # usefull for resuming jobs
         if i < initial_points[0]:
