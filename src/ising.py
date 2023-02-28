@@ -50,7 +50,7 @@ class Ising:
         ), f"External h field shape {h_field.shape[0]} does not match spins number {self.spins}"
 
         self._create_adj_matrix()
-        self._create_quantum_hamiltonian()
+        self._quantum_hamiltonian = None
 
     def __str__(self) -> str:
         return f"""\nIsing Model 
@@ -106,6 +106,8 @@ class Ising:
 
     @property
     def quantum_hamiltonian(self) -> sparse.coo_array:
+        if self._quantum_hamiltonian is None:
+            self._create_quantum_hamiltonian()
         return self._quantum_hamiltonian
 
     def _check(self, adj_dict: dict[tuple[int, int], float]) -> None:
