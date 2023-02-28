@@ -61,6 +61,10 @@ def cvar_opt(
     assert (
         type_ansatz == "qaoa" or not opt_parameters
     ), "Optimized parameters for QAOA ansatz only"
+    if opt_parameters and None in shots:
+        # if quantum hamiltonian is used
+        # run only an optimization
+        initial_points = [1]
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
     # define different starting points
@@ -73,7 +77,7 @@ def cvar_opt(
         opt_parameters,
     )
 
-    # check if directory exists
+    # check if save directory exists
     if save_dir is not None:
         if not Path(save_dir).is_dir():
             print(f"'{save_dir}' not found")
@@ -116,7 +120,7 @@ def cvar_opt(
         # report iteration execution time
         stop_it = datetime.now()
         # normalize per CPUs and iterations
-        per_cpu_runs = max((initial_points[1] - initial_points[0]), 1) / processes
+        per_cpu_runs = (initial_points[1] - initial_points[0]) / processes
         delta_it = (stop_it - start_it) / per_cpu_runs
         print(f"\nSave results in {filename}")
         print(f"CPU-per-job time: {delta_it.total_seconds():.2f}s\n")
