@@ -52,10 +52,6 @@ def cvar_opt(
         measure=False if shots[0] is None else True,
         verbose=verbose,
     )
-    # check ansatz consistency
-    assert ((len(shots) == 1) and (None in shots)) or (
-        len(shots) == 1
-    ), "Invalid input for shots"
     # check input parameters consistency
     # opt_parameters only available for QAOA
     assert (
