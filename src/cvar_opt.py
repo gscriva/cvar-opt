@@ -27,6 +27,7 @@ def cvar_opt(
     shots: list[int],
     maxiters: list[int],
     initial_points: list[int],
+    opt_parameters: bool = False,
     type_ansatz: str = "vqe",
     noise_model: bool = False,
     type_ising: str = "ferro",
@@ -36,7 +37,7 @@ def cvar_opt(
     verbose: int = 0,
 ) -> None:
     start = datetime.now()
-    
+
     # hamiltonian is defined with +
     # following http://spinglass.uni-bonn.de/ notation
     ising, global_min = utils.create_ising1d(qubits, DIM, type_ising, H_FIELD, seed)
@@ -48,19 +49,31 @@ def cvar_opt(
         circ_depth,
         type_ansatz,
         ising,
-        measure=False if shots[0] is None else True, 
+        measure=False if shots[0] is None else True,
         verbose=verbose,
     )
-    # check ansatz consistency
-    assert (len(shots)==1) and (None in shots), "Invalid input for shots" 
+    # check input parameters consistency
+    # opt_parameters only available for QAOA
+    assert (
+        type_ansatz == "qaoa" or not opt_parameters
+    ), "Optimized parameters for QAOA ansatz only"
+    if opt_parameters and None in shots:
+        # if quantum hamiltonian is used
+        # run only an optimization
+        initial_points = [1]
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
     # define different starting points
     if len(initial_points) == 1:
         initial_points.insert(0, 0)
-    thetas0 = utils.get_init_points(initial_points, ansatz.num_parameters, rng)
+    thetas0 = utils.get_init_points(
+        initial_points,
+        ansatz.num_parameters,
+        rng,
+        opt_parameters,
+    )
 
-    # check if directory exists
+    # check if save directory exists
     if save_dir is not None:
         if not Path(save_dir).is_dir():
             print(f"'{save_dir}' not found")

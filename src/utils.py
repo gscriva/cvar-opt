@@ -10,19 +10,35 @@ from scipy import sparse
 
 from . import ising
 
+OPT_T = 0.78
+
 
 def get_init_points(
-    initial_points: list[int], num_params: int, rng: np.random.Generator
+    initial_points: list[int],
+    num_params: int,
+    rng: np.random.Generator,
+    opt_parameters: bool,
 ) -> list[np.ndarray]:
     thetas0: list[np.ndarray] = []
     for i in range(initial_points[1]):
         # skip initial points not needed
+        # usefull for resuming jobs
         if i < initial_points[0]:
             _ = rng.uniform(0, 2 * math.pi, num_params)
             continue
-        # generate initial points
-        # uniform in [-pi,pi]
-        thetas0.append(rng.uniform(0, 2 * math.pi, num_params))
+        if opt_parameters:
+            # Optimized initialization following
+            # https://doi.org/10.22331/q-2021-07-01-491
+            depth = num_params // 2
+            opt_thetas0 = [
+                [i * OPT_T / depth, (1 - i / depth) * OPT_T]
+                for i in range(1, depth + 1)
+            ]
+            thetas0.append([np.asarray(opt_thetas0).ravel()])
+        else:
+            # generate initial points
+            # uniform in [0,2*pi]
+            thetas0.append(rng.uniform(0, 2 * math.pi, num_params))
     return thetas0
 
 
@@ -130,9 +146,6 @@ def create_qaoa_ansatz(
         thetas = qiskit.circuit.ParameterVector(
             "$\\theta$", (2 * num_qubits) * circ_depth
         )
-        print(
-            RuntimeWarning("WARNING: External field not present in the circuit ansatz")
-        )
     else:
         # calssical QAOA ansatz
         betas = qiskit.circuit.ParameterVector("$\\beta$", circ_depth)
@@ -143,25 +156,25 @@ def create_qaoa_ansatz(
         for j, j_coupling in enumerate(hamiltonian.adj_dict.values()):
             if increase_params:
                 qc.rzz(
-                    j_coupling * thetas[(2 * num_qubits) * i + j],
+                    j_coupling * 2 * thetas[(2 * num_qubits) * i + j],
                     j,
                     j + 1,
                 )
             else:
-                qc.rzz(j_coupling * gammas[i], j, j + 1)
+                qc.rzz(j_coupling * 2 * gammas[i], j, j + 1)
         qc.barrier()
         # add Rz parametric gates
         for j, h_j in enumerate(hamiltonian.h_field):
             if increase_params:
-                qc.rz(h_j * thetas[(2 * num_qubits) * i + num_qubits - 1 + j], j)
+                qc.rz(h_j * 2 * thetas[(2 * num_qubits) * i + num_qubits - 1 + j], j)
             else:
-                qc.rz(h_j * gammas[i], j)
+                qc.rz(h_j * 2 * gammas[i], j)
         # add Rx parametric gates
         for j in range(num_qubits):
             if increase_params:
-                qc.rx(thetas[(2 * num_qubits) * (i + 1) - 1], j)
+                qc.rx(-2 * thetas[(2 * num_qubits) * (i + 1) - 1], j)
             else:
-                qc.rx(betas[i], j)
+                qc.rx(-2 * betas[i], j)
         # do not put barrier in the last iteration
         if i == circ_depth - 1:
             continue
@@ -191,7 +204,6 @@ def create_ansatz(
     else:
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
     if measure:
-        qc.barrier()
         qc.measure_all()
     if verbose > 0 and qubits < 8:
         print(qc)
