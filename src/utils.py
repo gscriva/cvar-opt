@@ -1,4 +1,3 @@
-import functools
 import itertools
 import json
 import math
@@ -6,7 +5,6 @@ import os
 
 import numpy as np
 import qiskit
-from scipy import sparse
 
 from . import ising
 
