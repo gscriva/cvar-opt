@@ -10,7 +10,7 @@ from scipy import sparse
 
 from . import ising
 
-OPT_T = 0.78
+OPT_T = 0.80
 
 
 def get_init_points(
