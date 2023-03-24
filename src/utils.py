@@ -28,11 +28,10 @@ def get_init_points(
             # Optimized initialization following
             # https://doi.org/10.22331/q-2021-07-01-491
             depth = num_params // 2
-            opt_thetas0 = [
-                [i * OPT_T / depth, (1 - i / depth) * OPT_T]
-                for i in range(1, depth + 1)
-            ]
-            thetas0.append([np.asarray(opt_thetas0).ravel()])
+            gammas = [i * OPT_T / depth for i in range(1, depth + 1)]
+            opt_thetas0 = [(1 - i / depth) * OPT_T for i in range(1, depth + 1)]
+            opt_thetas0.extend(gammas)
+            thetas0.append(opt_thetas0)
         else:
             # generate initial points
             # uniform in [0,2*pi]
@@ -146,8 +145,8 @@ def create_qaoa_ansatz(
         )
     else:
         # calssical QAOA ansatz
-        betas = qiskit.circuit.ParameterVector("$\\beta$", circ_depth)
         gammas = qiskit.circuit.ParameterVector("$\\gamma$", circ_depth)
+        betas = qiskit.circuit.ParameterVector("$\\beta$", circ_depth)
     # add circ_depth layers
     for i in range(circ_depth):
         # add R_zz parametric gates
