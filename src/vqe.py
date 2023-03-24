@@ -199,6 +199,7 @@ class VQE:
         energies: list[float] = []
         eng_opt: float = np.inf
         sample_opt: np.ndarray = np.empty(self.expectation.spins)
+        count_opt: int = 0
         for sample, count in counts.items():
             # invert output string order
             # due to Big Endian / Little Endian qiskit issue, see also
@@ -213,7 +214,8 @@ class VQE:
                 if energy < eng_opt:
                     eng_opt = energy
                     sample_opt = np.copy(sample_ising)
-        return np.asarray(energies), sample_opt, eng_opt
+                    count_opt = count
+        return np.asarray(energies), sample_opt, eng_opt, count_opt
 
     def _update_history(self, min_energy: float) -> None:
         self._history["min"].append(min_energy)
@@ -224,7 +226,7 @@ class VQE:
         if self.shots is not None:
             counts = self._eval_ansatz(circuit)
             # compute energy according to the ising model
-            energies, _, _ = self._compute_expectation(counts)
+            energies, _, _, _ = self._compute_expectation(counts)
             # get the alpha-th percentile
             cvar = np.percentile(energies, self.alpha)
             # sum all the energies below cvar
@@ -269,7 +271,7 @@ class VQE:
             circuit.measure_all()
         counts = self._eval_ansatz(circuit)
         # get the min energy and its relative sample
-        _, sample_opt, eng_opt = self._compute_expectation(counts, last=True)
+        _, sample_opt, eng_opt, count_opt = self._compute_expectation(counts, last=True)
         # store if the optimal parameter is successfull
         success = math.isclose(eng_opt, self.global_min)
         # success is True if the opt_res is correct
@@ -292,9 +294,10 @@ class VQE:
         result |= {
             "sample_opt": sample_opt,
             "eng_opt": eng_opt,
+            "count_opt": count_opt,
             "success": success,
             "ever_found": ever_found,
-            "shots": self.shots,
+            "shots": self.shots if self.shots is not None else self.FIX_SHOTS,
             "global_min": self.global_min,
         }
         return result
