@@ -60,6 +60,7 @@ def cvar_opt(
     if opt_parameters and None in shots:
         # if quantum hamiltonian is used
         # run only an optimization
+        print("\nInitial points decreased to 1")
         initial_points = [1]
     # define generator for initial points
     rng = np.random.default_rng(seed=SEED)
@@ -76,8 +77,8 @@ def cvar_opt(
     # check if save directory exists
     if save_dir is not None:
         if not Path(save_dir).is_dir():
-            print(f"'{save_dir}' not found")
-            raise FileNotFoundError
+            print(f"'{save_dir}' not found...creating it in the working dir")
+            Path(save_dir).mkdir(parents=True, exist_ok=True)
     else:
         save_dir = Path().absolute()
 

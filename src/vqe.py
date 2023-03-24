@@ -1,3 +1,4 @@
+import gc
 import math
 from typing import Any, Optional
 
@@ -32,6 +33,7 @@ class VQE:
 
     # turn off OpenMP intra-qiskit
     __MAX_PARALLEL = 1
+    OMP_NUM_THREADS = 1
     # noise parameters (some kind of magic...)
     __T1 = 50e3
     __T2 = 70e3
@@ -42,6 +44,8 @@ class VQE:
     __TIME_CX = 300
     __TIME_RESET = 1000  # 1 microsecond
     __TIME_MEASURE = 1000  # 1 microsecond
+    # Fix number of shots
+    FIX_SHOTS = 16
 
     def __init__(
         self,
@@ -181,7 +185,7 @@ class VQE:
         # Execute the circuit with fixed params
         job = self.simulator.run(
             qiskit.transpile(circuit, self.simulator),
-            shots=self.shots if self.shots is not None else 16,
+            shots=self.shots if self.shots is not None else FIX_SHOTS,
         )  # TODO hardcoding to fix
         # Grab results from the job
         result = job.result().get_counts()
@@ -246,6 +250,10 @@ class VQE:
                 print(f"min: {loss:4.3}")
             # here we have a single exact energy value
             self._update_history(float(loss))
+            # remove unreferenced memory
+            del job
+            del statevector
+            del circuit
         return float(loss)
 
     def _eval_result(self, opt_res: optimize.OptimizeResult) -> dict[str, Any]:
@@ -253,7 +261,7 @@ class VQE:
         # using the optimized results
         circuit = self._update_ansatz(opt_res.x)
         if self.shots is None:
-            # in the last evaluation 
+            # in the last evaluation
             # we measure from the circuit
             circuit.measure_all()
         counts = self._eval_ansatz(circuit)
@@ -291,7 +299,7 @@ class VQE:
     def minimize(self, initial_point: np.ndarray) -> dict[str, Any]:
         # reset history
         # needed if the same VQE has been used for more than one job
-        self._history: dict[list[float], list[float]] = {"min": []}
+        self._history: dict[list[float]] = {"min": []}
         # start initialization
         opt_res = optimize.minimize(
             self._minimize_func,
