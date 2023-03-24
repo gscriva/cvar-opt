@@ -45,7 +45,7 @@ class VQE:
     __TIME_RESET = 1000  # 1 microsecond
     __TIME_MEASURE = 1000  # 1 microsecond
     # Fix number of shots
-    FIX_SHOTS = 16
+    __FIX_SHOTS = 16
 
     def __init__(
         self,
@@ -185,7 +185,7 @@ class VQE:
         # Execute the circuit with fixed params
         job = self.simulator.run(
             qiskit.transpile(circuit, self.simulator),
-            shots=self.shots if self.shots is not None else FIX_SHOTS,
+            shots=self.shots if self.shots is not None else self.__FIX_SHOTS,
         )  # TODO hardcoding to fix
         # Grab results from the job
         result = job.result().get_counts()
@@ -204,7 +204,7 @@ class VQE:
             # due to Big Endian / Little Endian qiskit issue, see also
             # https://quantumcomputing.stackexchange.com/questions/8244/big-endian-vs-little-endian-in-qiskit
             # and cast the sample in np.ndarray with in ising notation {+1,-1}
-            sample_ising = np.asarray(list(sample)[::-1], dtype=int) * 2 - 1
+            sample_ising = -(np.asarray(list(sample)[::-1], dtype=int) * 2 - 1)
             energy = self.expectation.energy(sample_ising)
             energies.extend([energy] * count)
             if last:
@@ -246,6 +246,9 @@ class VQE:
                 .conjugate()
                 .dot(statevector)
             )
+            print(f"parameters {parameters}\n")
+            print(f"statevector {statevector}")
+            print(f"loss {loss}")
             if self._verbose > 1:
                 print(f"min: {loss:4.3}")
             # here we have a single exact energy value
@@ -279,7 +282,7 @@ class VQE:
         # print job summary
         if self._verbose > 0:
             print(
-                f"Results: {((sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:6.2f}\tGlobal minimum: {success} ({ever_found} [{where_found}])"
+                f"Results: {((-sample_opt + 1) / 2).astype(int)} Energy: {eng_opt:6.2f}\tGlobal minimum: {success} ({ever_found} [{where_found}])"
             )
             if self._verbose > 1:
                 print("\n")
