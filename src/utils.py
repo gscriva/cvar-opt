@@ -29,7 +29,9 @@ def get_init_points(
             # https://doi.org/10.22331/q-2021-07-01-491
             depth = num_params // 2
             gammas = [i * OPT_T / depth for i in range(1, depth + 1)]
+            # betas
             opt_thetas0 = [(1 - i / depth) * OPT_T for i in range(1, depth + 1)]
+            # [beta_1, ..., beta_n, gamma_1, ..., gamma_n]
             opt_thetas0.extend(gammas)
             thetas0.append(opt_thetas0)
         else:
