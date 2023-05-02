@@ -143,12 +143,12 @@ def create_qaoa_ansatz(
     if increase_params:
         # create the parameters for the circuit
         thetas = qiskit.circuit.ParameterVector(
-            "$\\theta$", (2 * num_qubits) * circ_depth
+            "θ", (2 * num_qubits) * circ_depth
         )
     else:
         # calssical QAOA ansatz
-        gammas = qiskit.circuit.ParameterVector("$\\gamma$", circ_depth)
-        betas = qiskit.circuit.ParameterVector("$\\beta$", circ_depth)
+        gammas = qiskit.circuit.ParameterVector("γ", circ_depth)
+        betas = qiskit.circuit.ParameterVector("β", circ_depth)
     # add circ_depth layers
     for i in range(circ_depth):
         # add R_zz parametric gates
