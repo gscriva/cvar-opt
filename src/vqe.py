@@ -46,12 +46,17 @@ class VQE:
     __TIME_MEASURE = 1000  # 1 microsecond
     # Fix number of shots
     __FIX_SHOTS = 16
+    # Fix epsilon for computing gradient
+    __EPS = 1e-2
+    # Fix learning rate
+    __ETA = 1e-2
 
     def __init__(
         self,
         ansatz: qiskit.QuantumCircuit,
         expectation: ising.Ising,
         optimizer: str = "COBYLA",
+        gradient: bool = False,
         backend: str = "automatic",
         noise_model: Optional[bool] = None,
         shots: Optional[int] = None,
@@ -66,6 +71,7 @@ class VQE:
             ansatz (qiskit.QuantumCircuit): Parametric quantum circuit, used as variational ansatz.
             expectation (ising.Ising): Ising instance.
             optimizer (str, optional): Method for the classical optimization. Defaults to "COBYLA".
+            gradient (bool, optional): Set True to use gradients during optimization. Defaults to False.
             backend (str, optional): Simulator for the circuit evaluation. Defaults to "automatic".
             noise_model (bool, optional): If True a custom noise is added. Defaults to None.
             shots (Optional[int], optional): Number of sample from the circuit. Defaults to None.
@@ -79,6 +85,7 @@ class VQE:
         self._ansatz = ansatz
         self._expectation = expectation
         self._optimizer = optimizer
+        self._gradient = gradient
 
         if noise_model is not None:
             noise_model = self._get_noise()
@@ -223,7 +230,7 @@ class VQE:
     def _minimize_func(self, parameters: np.ndarray) -> float:
         # update the circuit and get results
         circuit = self._update_ansatz(parameters)
-        if self.shots is not None:
+        if self._shots is not None:
             counts = self._eval_ansatz(circuit)
             # compute energy according to the ising model
             energies, _, _, _ = self._compute_expectation(counts)
@@ -248,11 +255,10 @@ class VQE:
                 .conjugate()
                 .dot(statevector)
             )
-            print(f"parameters {parameters}\n")
-            print(f"statevector {statevector}")
-            print(f"loss {loss}")
+            if self._verbose > 0:
+                print(f"\nloss: {loss}")
             if self._verbose > 1:
-                print(f"min: {loss:4.3}")
+                print(f"parameters: {parameters}")
             # here we have a single exact energy value
             self._update_history(float(loss))
             # remove unreferenced memory
@@ -261,13 +267,89 @@ class VQE:
             del circuit
         return float(loss)
 
-    def _eval_result(self, opt_res: optimize.OptimizeResult) -> dict[str, Any]:
+    def _update_parameters(
+        self, parameters: np.ndarray, derivative: np.ndarray
+    ) -> np.ndarray:
+        parameters -= self.__ETA * derivative
+        return parameters
+
+    def _derivative(self, parameters: np.ndarray) -> np.ndarray:
+        derivative = np.zeros_like(parameters)
+        for i, _ in enumerate(parameters):
+            shift = np.zeros_like(parameters)
+            shift[i] = self.__EPS
+            # update the circuit plus and minus pi/2 for each parameter
+            circuit_plus_eps = self._update_ansatz(parameters + shift)
+            circuit_minus_eps = self._update_ansatz(parameters - shift)
+            if self._shots is not None:
+                # compute energy according to the ising model
+                energies_plus_eps, _, _, _ = self._compute_expectation(
+                    self._eval_ansatz(circuit_plus_eps)
+                )
+                energies_minus_eps, _, _, _ = self._compute_expectation(
+                    self._eval_ansatz(circuit_minus_eps)
+                )
+                # compute derivative with parameter shift rule
+                # no cVaR used in this case
+                derivative[i] = (
+                    energies_plus_eps.mean() - energies_minus_eps.mean()
+                ) / (2 * self.__EPS)
+            else:
+                circuit_plus_eps.save_statevector()
+                circuit_minus_eps.save_statevector()
+                circuit_plus_eps = qiskit.transpile(circuit_plus_eps, self.simulator)
+                circuit_minus_eps = qiskit.transpile(circuit_minus_eps, self.simulator)
+                job_plus_eps = self.simulator.run(circuit_plus_eps)
+                job_minus_eps = self.simulator.run(circuit_minus_eps)
+                # Grab results from the job
+                statevector_plus_eps = (
+                    job_plus_eps.result().get_statevector(circuit_plus_eps).data
+                )
+                statevector_minus_eps = (
+                    job_minus_eps.result().get_statevector(circuit_minus_eps).data
+                )
+                # retrieve the exact state
+                # and compute its exact energy
+                derivative[i] = (
+                    self.expectation.quantum_hamiltonian.dot(statevector_plus_eps)
+                    .conjugate()
+                    .dot(statevector_plus_eps)
+                    - self.expectation.quantum_hamiltonian.dot(statevector_minus_eps)
+                    .conjugate()
+                    .dot(statevector_minus_eps)
+                ) / (2 * self.__EPS)
+                # remove unreferenced memory
+                del job_plus_eps, job_minus_eps
+                del statevector_plus_eps, statevector_minus_eps
+                del circuit_plus_eps, circuit_minus_eps
+        if self._verbose > 1:
+            print(f"derivative: {derivative}")
+        return derivative
+
+    def _minimize_grad(self, parameters: np.ndarray) -> dict:
+        best_loss = np.inf
+        best_parameters = np.zeros_like(parameters)
+        for i in range(self._maxiter):
+            # valuate function
+            loss = self._minimize_func(parameters)
+            if loss < best_loss:
+                loss = best_loss
+                best_parameters = np.copy(parameters)
+            # compute gradient descent step
+            derivative = self._derivative(parameters)
+            parameters = self._update_parameters(parameters, derivative)
+        # nfev counts the jacobian's evaluations too (two per step)
+        opt_res = {"x": best_parameters, "nfev": self._maxiter * 3}
+        return opt_res
+
+    def _eval_result(self, opt_res: optimize.OptimizeResult | dict) -> dict[str, Any]:
         # update the circuit and sample results
         # using the optimized results
-        circuit = self._update_ansatz(opt_res.x)
+        circuit = self._update_ansatz(opt_res["x"])
         if self.shots is None:
             # in the last evaluation
             # we measure from the circuit
+            # even if we use sv simulator
             circuit.measure_all()
         counts = self._eval_ansatz(circuit)
         # get the min energy and its relative sample
@@ -297,7 +379,7 @@ class VQE:
             "count_opt": count_opt,
             "success": success,
             "ever_found": ever_found,
-            "shots": self.shots if self.shots is not None else self.FIX_SHOTS,
+            "shots": self.shots if self.shots is not None else self.__FIX_SHOTS,
             "global_min": self.global_min,
         }
         return result
@@ -307,12 +389,18 @@ class VQE:
         # needed if the same VQE has been used for more than one job
         self._history: dict[list[float]] = {"min": []}
         # start initialization
-        opt_res = optimize.minimize(
-            self._minimize_func,
-            initial_point,
-            method=self.optimizer,
-            options={"maxiter": self.maxiter} if self.maxiter is not None else None,
-        )
+        if self._gradient is True:
+            # use custom gradient descent
+            opt_res = self._minimize_grad(initial_point)
+        else:
+            # use COBYLA
+            opt_res = optimize.minimize(
+                self._minimize_func,
+                initial_point,
+                method=self.optimizer,
+                jac=self._derivative if self._gradient else None,
+                options={"maxiter": self.maxiter} if self.maxiter is not None else None,
+            )
         result = self._eval_result(opt_res)
         result["initial_point"] = initial_point
         return result

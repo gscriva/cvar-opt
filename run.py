@@ -31,6 +31,11 @@ parser.add_argument(
     help="Number of initial points, i.e., different runs to produce. Use two values input to resume old runs. (default: 1000)",
 )
 parser.add_argument(
+    "--gradient",
+    action="store_true",
+    help="Flag for using the gradient during optimization. (default: False)",
+)
+parser.add_argument(
     "--opt-parameters",
     action="store_true",
     help="Flag for using the optimized parameters, only for QAOA. (default: False)",
@@ -89,6 +94,7 @@ def main(args: argparse.ArgumentParser):
         args.shots,
         args.maxiters,
         args.initial_points,
+        args.gradient,
         args.opt_parameters,
         args.type_ansatz,
         args.noise_model,
