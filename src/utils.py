@@ -105,7 +105,7 @@ def create_ising1d(
     # class devoted to set the couplings and get the energy
     model = ising.Ising(spins, dim=dim, adj_dict=adj_dict, h_field=h)
     # exact enumeration would be too expensive for large sizes
-    if spins < 22 and (type_ising == "binary" or type_ising == "random"):
+    if spins < 30 and (type_ising == "binary" or type_ising == "random"):
         min_eng = compute_ising_min(model)
     elif type_ising == "ferro":
         min_eng = model.energy(-np.ones(model.spins))
