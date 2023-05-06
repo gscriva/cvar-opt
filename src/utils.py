@@ -142,9 +142,7 @@ def create_qaoa_ansatz(
         qc.h(i)
     if increase_params:
         # create the parameters for the circuit
-        thetas = qiskit.circuit.ParameterVector(
-            "θ", (2 * num_qubits) * circ_depth
-        )
+        thetas = qiskit.circuit.ParameterVector("θ", (2 * num_qubits) * circ_depth)
     else:
         # calssical QAOA ansatz
         gammas = qiskit.circuit.ParameterVector("γ", circ_depth)
