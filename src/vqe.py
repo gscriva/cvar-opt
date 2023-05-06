@@ -49,7 +49,7 @@ class VQE:
     # Fix epsilon for computing gradient
     __EPS = 1e-2
     # Fix learning rate
-    __ETA = 1e-2
+    __ETA = 1e-3
 
     def __init__(
         self,
@@ -101,7 +101,7 @@ class VQE:
         self._global_min = global_min
         self._verbose = verbose
         # save minimum value and loss at each iteration
-        self._history: dict[str, list[float]] = {"min": []}
+        self._history: dict[str, list[float]] = {"min": [], "loss": []}
 
     def __str__(self) -> str:
         noise = True if self.simulator.options.noise_model is not None else False
@@ -224,7 +224,8 @@ class VQE:
                     count_opt = count
         return np.asarray(energies), sample_opt, eng_opt, count_opt
 
-    def _update_history(self, min_energy: float) -> None:
+    def _update_history(self, min_energy: float, loss: float) -> None:
+        self._history["loss"].append(loss)
         self._history["min"].append(min_energy)
 
     def _minimize_func(self, parameters: np.ndarray) -> float:
@@ -239,7 +240,7 @@ class VQE:
             # sum all the energies below cvar
             loss = energies[energies <= cvar].mean()
             # store results of each iteration
-            self._update_history(float(energies.min()))
+            self._update_history(float(energies.min()), float(loss))
             if self._verbose > 1:
                 print(f"loss: {loss} min: {energies.min():4.3}\t{counts}")
         else:
@@ -260,7 +261,7 @@ class VQE:
             if self._verbose > 1:
                 print(f"parameters: {parameters}")
             # here we have a single exact energy value
-            self._update_history(float(loss))
+            self._update_history(float(loss), float(loss))
             # remove unreferenced memory
             del job
             del statevector
@@ -381,13 +382,14 @@ class VQE:
             "ever_found": ever_found,
             "shots": self.shots if self.shots is not None else self.__FIX_SHOTS,
             "global_min": self.global_min,
+            "loss": self._history["loss"],
         }
         return result
 
     def minimize(self, initial_point: np.ndarray) -> dict[str, Any]:
         # reset history
         # needed if the same VQE has been used for more than one job
-        self._history: dict[list[float]] = {"min": []}
+        self._history: dict[list[float], list[float]] = {"min": [], "loss": []}
         # start initialization
         if self._gradient is True:
             # use custom gradient descent
