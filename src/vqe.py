@@ -47,7 +47,7 @@ class VQE:
     # Fix number of shots
     __FIX_SHOTS = 16
     # Fix epsilon for computing gradient
-    __EPS = 1e-2
+    __EPS = math.pi / 2
     # Fix learning rate
     __ETA = 1e-3
 
@@ -294,7 +294,7 @@ class VQE:
                 # no cVaR used in this case
                 derivative[i] = (
                     energies_plus_eps.mean() - energies_minus_eps.mean()
-                ) / (2 * self.__EPS)
+                ) / 2.0
             else:
                 circuit_plus_eps.save_statevector()
                 circuit_minus_eps.save_statevector()
@@ -318,7 +318,7 @@ class VQE:
                     - self.expectation.quantum_hamiltonian.dot(statevector_minus_eps)
                     .conjugate()
                     .dot(statevector_minus_eps)
-                ) / (2 * self.__EPS)
+                ) / 2.0
                 # remove unreferenced memory
                 del job_plus_eps, job_minus_eps
                 del statevector_plus_eps, statevector_minus_eps
