@@ -50,6 +50,8 @@ class VQE:
     __EPS = math.pi / 2
     # Fix learning rate
     __ETA = 1e-3
+    # Set maximum number of iteration for custom grad opt
+    __GRAD_MAX_ITER = 500
 
     def __init__(
         self,
@@ -394,6 +396,9 @@ class VQE:
         if self._gradient is True:
             # use custom gradient descent
             opt_res = self._minimize_grad(initial_point)
+            self._maxiter = (
+                self.__GRAD_MAX_ITER if self._maxiter is None else self._maxiter
+            )
         else:
             # use COBYLA
             opt_res = optimize.minimize(
