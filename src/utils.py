@@ -203,7 +203,7 @@ def create_ansatz(
     if measure:
         qc.measure_all()
     if verbose > 0 and qubits < 8:
-        print(qc)
+        print(qc) if ansatz_type != "vqe" else print(qc.decompose())
     return qc
 
 
