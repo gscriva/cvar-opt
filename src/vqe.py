@@ -292,6 +292,10 @@ class VQE:
                 energies_minus_eps, _, _, _ = self._compute_expectation(
                     self._eval_ansatz(circuit_minus_eps)
                 )
+                if self._verbose > 1:
+                    print(
+                        f"eng_plus: {energies_plus_eps} \t eng_minus: {energies_minus_eps}"
+                    )
                 # compute derivative with parameter shift rule
                 # no cVaR used in this case
                 derivative[i] = (
@@ -341,7 +345,7 @@ class VQE:
             # compute gradient descent step
             derivative = self._derivative(parameters)
             parameters = self._update_parameters(parameters, derivative)
-        # nfev counts the jacobian's evaluations too (two per step)
+        # nfev counts the jacobian's evaluations too (two) and the loss' evaluation (one)
         opt_res = {"x": best_parameters, "nfev": self._maxiter * 3}
         return opt_res
 
