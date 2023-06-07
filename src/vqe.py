@@ -345,8 +345,8 @@ class VQE:
             # compute gradient descent step
             derivative = self._derivative(parameters)
             parameters = self._update_parameters(parameters, derivative)
-        # nfev counts the jacobian's evaluations too (two) and the loss' evaluation (one)
-        opt_res = {"x": best_parameters, "nfev": self._maxiter * 3}
+        # nfev counts only yh optimizer evaluation
+        opt_res = {"x": best_parameters, "nfev": self._maxiter}
         return opt_res
 
     def _eval_result(self, opt_res: optimize.OptimizeResult | dict) -> dict[str, Any]:
