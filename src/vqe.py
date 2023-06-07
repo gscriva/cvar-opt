@@ -49,7 +49,7 @@ class VQE:
     # Fix epsilon for computing gradient
     __EPS = math.pi / 2
     # Fix learning rate
-    __ETA = 1e-3
+    __ETA = 1e-1
     # Set maximum number of iteration for custom grad opt
     __GRAD_MAX_ITER = 500
 
