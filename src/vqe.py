@@ -46,8 +46,9 @@ class VQE:
     __TIME_MEASURE = 1000  # 1 microsecond
     # Fix number of shots
     __FIX_SHOTS = 16
-    # Fix epsilon for computing gradient
-    __EPS = math.pi / 2
+    # Fix epsilon and shift for computing gradient
+    __SHIFT = math.pi / 2
+    __EPS = 1e-2
     # Fix learning rate
     __ETA = 1e-1
     # Set maximum number of iteration for custom grad opt
@@ -112,7 +113,7 @@ class VQE:
             qubits: {self.ansatz.num_qubits}
             name: {self.ansatz.name}
             parameters: {self.ansatz.num_parameters}
-        Optimizer: {self.optimizer}
+        Optimizer: Gradient if self._gradient else {self.optimizer} 
         Simulator: {self.simulator} with noise: {noise}
         Shots: {self.shots}
         Maxiter: {self.maxiter}
@@ -260,14 +261,14 @@ class VQE:
             )
             if self._verbose > 0:
                 print(f"\nloss: {loss}")
-            if self._verbose > 1:
-                print(f"parameters: {parameters}")
             # here we have a single exact energy value
             self._update_history(float(loss), float(loss))
             # remove unreferenced memory
             del job
             del statevector
             del circuit
+        if self._verbose > 1:
+            print(f"parameters: {parameters}")
         return float(loss)
 
     def _update_parameters(
@@ -280,8 +281,8 @@ class VQE:
         derivative = np.zeros_like(parameters)
         for i, _ in enumerate(parameters):
             shift = np.zeros_like(parameters)
-            shift[i] = self.__EPS
-            # update the circuit plus and minus pi/2 for each parameter
+            shift[i] = self.__SHIFT if self._ansatz.name == "vqe" else self.__EPS
+            # update the circuit plus and minus shift for each parameter
             circuit_plus_eps = self._update_ansatz(parameters + shift)
             circuit_minus_eps = self._update_ansatz(parameters - shift)
             if self._shots is not None:
@@ -329,6 +330,10 @@ class VQE:
                 del job_plus_eps, job_minus_eps
                 del statevector_plus_eps, statevector_minus_eps
                 del circuit_plus_eps, circuit_minus_eps
+        # parameter shift rule holds only for VQE
+        if not self._ansatz.name == "vqe":
+            # compute finite diff gradient
+            derivative /= self.__EPS
         if self._verbose > 1:
             print(f"derivative: {derivative}")
         return derivative

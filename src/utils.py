@@ -202,6 +202,8 @@ def create_ansatz(
         raise NotImplementedError(f"Ansatz type {ansatz_type} not found")
     if measure:
         qc.measure_all()
+    # set the correct name for the quantum circuit
+    qc.name = ansatz_type
     if verbose > 0 and qubits < 8:
         print(qc) if ansatz_type != "vqe" else print(qc.decompose())
     return qc
