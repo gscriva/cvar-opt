@@ -48,7 +48,7 @@ class VQE:
     __FIX_SHOTS = 16
     # Fix epsilon and shift for computing gradient
     __SHIFT = math.pi / 2
-    __EPS = 1e-2
+    __EPS = 5e-1
     # Fix learning rate
     __ETA = 1e-1
     # Set maximum number of iteration for custom grad opt
