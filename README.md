@@ -1,14 +1,21 @@
 <div align="center">
 
-# TTS study for VQE enhanced by CVaR
+# Accelerating equilibrium spin-glass simulations using quantum data and deep learning
 
 [comment]: <![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)>
-
 [comment]: <[![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)>
 
 </div>
 
-Evaluate the Time To Solution (TTS) [1] for Variational Quantum Eigensolver (VQE) using CVaR [2].
+Quantum enhanced optimization of classical cost functions is a central theme of quantum computing due to its high potential value in science and technology.
+The variational quantum eigensolver (VQE) and the quantum approximate optimization algorithm (QAOA) are popular variational approaches that are considered the most viable solutions in the noisy-intermediate scale quantum (NISQ) era.
+Here, we study the scaling of the quantum resources, defined as the required number of circuit repetitions, to reach a fixed success probability as the problem size increases, focusing on the role played by measurement shot noise, which is unavoidable in realistic implementations.
+Simple and reproducible problem instances are addressed, namely, the ferromagnetic and disordered Ising chains. 
+Our results show that: 
+1. VQE with the standard heuristic ansatz scales comparably to direct brute-force search when energy-based optimizers are employed. The performance improves at most quadratically using a gradient-based optimizer.
+2. When the parameters are optimized from random guesses, also the scaling of QAOA implies problematically long absolute runtimes for large problem sizes.
+3. QAOA becomes practical when supplemented with a physically-inspired initialization of the parameters.
+Our results suggest that hybrid quantum-classical algorithms should possibly avoid a brute force classical outer loop, but focus on smart parameters initialization.
 
 <br>
 
