@@ -4,8 +4,7 @@
 
 > Giuseppe Scriva, Nikita Astrakhantsev, Sebastiano Pilati, and Guglielmo Mazzola
 
-[comment]: <![Paper](http://img.shields.io/badge/paper-arxiv.1001.2234-B31B1B.svg)](https://www.nature.com/articles/nature14539)>
-[comment]: <[![Conference](http://img.shields.io/badge/AnyConference-year-4b44ce.svg)](https://papers.nips.cc/paper/2020)>
+![Paper](http://img.shields.io/badge/paper-arXiv%202308.00044-B31B1B.svg)
 
 </div>
 
