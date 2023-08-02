@@ -4,7 +4,7 @@
 
 > Giuseppe Scriva, Nikita Astrakhantsev, Sebastiano Pilati, and Guglielmo Mazzola
 
-![Paper](http://img.shields.io/badge/paper-arXiv%202308.00044-B31B1B.svg)
+[![Paper](http://img.shields.io/badge/paper-arXiv%202308.00044-B31B1B.svg)](https://arxiv.org/abs/2308.00044)
 
 </div>
 
