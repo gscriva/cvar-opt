@@ -1,10 +1,12 @@
 <div align="center">
 
 # Challenges of variational quantum optimization with measurement shot noise
+Giuseppe Scriva, Nikita Astrakhantsev, Sebastiano Pilati, and Guglielmo Mazzola
 
-> Giuseppe Scriva, Nikita Astrakhantsev, Sebastiano Pilati, and Guglielmo Mazzola
+-----
 
-[![Paper](http://img.shields.io/badge/paper-arXiv%202308.00044-B31B1B.svg)](https://arxiv.org/abs/2308.00044)
+[![Paper](http://img.shields.io/badge/Paper-arXiv%202308.00044-B31B1B.svg)](https://arxiv.org/abs/2308.00044)
+[![Data](https://zenodo.org/badge/DOI/10.5281/zenodo.8223528.svg)](https://doi.org/10.5281/zenodo.8223528)
 
 </div>
 
@@ -49,13 +51,5 @@ For the others parameters, take a look to the help
 ```bash
 python run.py --help
 ```
-
-<br>
-
-
-## References
-
-1. Albash, T. & Lidar, D. A. Demonstration of a Scaling Advantage for a Quantum Annealer over Simulated Annealing. [Phys. Rev. X 8, 031016](https://doi.org/10.1103/PhysRevX.8.031016) (2018).
-2. Barkoutsos, P. K., Nannicini, G., Robert, A., Tavernelli, I. & Woerner, S. Improving Variational Quantum Optimization using CVaR. [Quantum 4, 256](https://doi.org/10.22331/q-2020-04-20-256) (2020).
 
 <br>
