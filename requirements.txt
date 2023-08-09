@@ -3,6 +3,8 @@ qiskit==0.39.3
 qiskit-ibm-runtime==0.8.0
 #------other-------------#
 scipy==1.10
+pandas
+jupyterlab
 
 #----------plot----------#
 matplotlib
