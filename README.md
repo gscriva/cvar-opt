@@ -28,7 +28,7 @@ Our results suggest that hybrid quantum-classical algorithms should possibly avo
 ## Going deeper
 
 [In our article](https://arxiv.org/abs/2308.00044), we consider optimization problems with VQE and QAOA (eventually enhanced with CVaR) for Ising ferromagnetic 1D instances 
-$$ H = \sum_{i=1}^{L-1} J_{i,i+1} \sigma_i \sigma_{i+1} + \sum_{i=1}^L h_i \sigma_i $$
+$$H = \sum_{i=1}^{L-1} J_{i,i+1} \sigma_i \sigma_{i+1} + \sum_{i=1}^L h_i \sigma_i$$
 where $L$ is the total number of spins $\mathbf{\sigma} = (\sigma_1, \cdots, \sigma_L)$, $J_{i,i+1}$ is the couplings between the $i$-th spin and the spin $i+1$, $h_i$ is the external field for the $i$-th spins.
 
 <br>
