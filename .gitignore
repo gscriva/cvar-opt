@@ -140,6 +140,8 @@ img/
 *.csv
 *.tar
 *.gz
+*.npz
+*.np
 
 # bash
 *.sh
